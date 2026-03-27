@@ -1,0 +1,2132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>MedInsight v14 — Medical Report Analyzer</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=Nunito:wght@300;400;600;700;800&display=swap');
+
+:root{
+  --ink:#1c2336;--ink2:#3d4a5c;--ink3:#6b7a8d;
+  --bg:#f0f2f7;--surface:#fff;--surface2:#f7f8fb;
+  --border:#e2e7f0;--border2:#cdd5e0;
+  --blue:#1a56db;--blue-pale:#eff3ff;--blue-border:#c3cffd;
+  --red:#c81e1e;--red-pale:#fdf2f2;--red-border:#fbd5d5;
+  --green:#057a55;--green-pale:#f3faf7;--green-border:#bcf0da;
+  --orange:#b43403;--orange-pale:#fff8f1;--orange-border:#fcd9bd;
+  --purple:#6c2bd9;--purple-pale:#f5f3ff;--purple-border:#ddd6fe;
+  --amber:#92400e;--amber-pale:#fffbeb;--amber-border:#fde68a;
+  --teal:#0694a2;--teal-pale:#e0f7fa;
+  --radius:14px;--radius-sm:8px;
+  --shadow:0 2px 16px rgba(28,35,54,.08);
+  --shadow-lg:0 8px 32px rgba(28,35,54,.12);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;font-size:15px;line-height:1.5;}
+.serif{font-family:'Lora',serif;}
+
+/* ── HEADER ── */
+header{
+  background:linear-gradient(135deg,#0f2044 0%,#1a3a6b 60%,#0f4c81 100%);
+  padding:0 32px;height:62px;display:flex;align-items:center;justify-content:space-between;
+  box-shadow:0 2px 20px rgba(0,0,0,.25);position:sticky;top:0;z-index:200;
+}
+.logo{display:flex;align-items:center;gap:12px;}
+.logo-mark{width:38px;height:38px;background:rgba(255,255,255,.15);border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:20px;border:1px solid rgba(255,255,255,.2);}
+.logo-text .name{color:#fff;font-family:'Lora',serif;font-size:19px;font-weight:600;letter-spacing:.3px;}
+.logo-text .sub{color:rgba(255,255,255,.5);font-size:10px;letter-spacing:2px;text-transform:uppercase;}
+.header-badge{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.8);padding:5px 14px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:.5px;}
+
+main{max-width:1120px;margin:0 auto;padding:40px 20px 60px;}
+
+/* ═══════════════ UPLOAD SCREEN ═══════════════ */
+.upload-hero{text-align:center;margin-bottom:36px;}
+.upload-hero h1{font-family:'Lora',serif;font-size:40px;color:var(--ink);line-height:1.2;margin-bottom:14px;}
+.upload-hero h1 em{color:var(--blue);font-style:italic;}
+.upload-hero p{font-size:16px;color:var(--ink3);max-width:560px;margin:0 auto;line-height:1.7;}
+
+.notice-strip{background:var(--amber-pale);border:1px solid var(--amber-border);border-radius:10px;padding:11px 18px;font-size:12.5px;color:var(--amber);text-align:center;max-width:720px;margin:0 auto 32px;line-height:1.6;}
+
+/* Report type selector */
+.rtype-row{display:flex;gap:12px;justify-content:center;margin-bottom:28px;flex-wrap:wrap;}
+.rtype-btn{display:flex;flex-direction:column;align-items:center;gap:6px;padding:16px 24px;background:var(--surface);border:2px solid var(--border);border-radius:var(--radius);cursor:pointer;transition:all .2s;min-width:140px;font-family:'Nunito',sans-serif;}
+.rtype-btn:hover{border-color:var(--blue);background:var(--blue-pale);}
+.rtype-btn.active{border-color:var(--blue);background:var(--blue-pale);box-shadow:0 0 0 3px rgba(26,86,219,.12);}
+.rtype-btn .rtype-icon{font-size:28px;}
+.rtype-btn .rtype-label{font-size:13px;font-weight:700;color:var(--ink);}
+.rtype-btn .rtype-desc{font-size:11px;color:var(--ink3);text-align:center;}
+
+.upload-zone{border:2px dashed var(--border2);border-radius:var(--radius);padding:52px 32px;text-align:center;cursor:pointer;background:var(--surface);transition:all .25s;max-width:700px;margin:0 auto;}
+.upload-zone:hover,.upload-zone.dragover{border-color:var(--blue);background:var(--blue-pale);}
+.upload-zone-icon{font-size:52px;margin-bottom:14px;}
+.upload-zone-title{font-weight:800;color:var(--ink);font-size:17px;margin-bottom:6px;}
+.upload-zone-sub{font-size:13px;color:var(--ink3);line-height:1.7;}
+.file-chip{margin-top:14px;background:var(--green-pale);border:1px solid var(--green-border);border-radius:10px;padding:10px 16px;display:none;align-items:center;gap:10px;max-width:700px;margin-left:auto;margin-right:auto;}
+.file-chip.show{display:flex;}
+.btn-analyze{display:block;width:100%;max-width:700px;margin:14px auto 0;padding:15px;background:linear-gradient(135deg,#1a56db,#0f4c81);color:#fff;border:none;border-radius:var(--radius);font-size:16px;font-weight:800;cursor:pointer;transition:all .2s;font-family:'Nunito',sans-serif;letter-spacing:.3px;box-shadow:0 4px 14px rgba(26,86,219,.3);}
+.btn-analyze:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 6px 20px rgba(26,86,219,.4);}
+.btn-analyze:disabled{background:#b0bac8;cursor:not-allowed;box-shadow:none;transform:none;}
+.err-box{background:var(--red-pale);border:1px solid var(--red-border);border-radius:10px;padding:12px 16px;color:var(--red);font-size:13px;margin:12px auto;display:none;max-width:700px;line-height:1.6;}
+
+/* ═══════════════ PROCESSING ═══════════════ */
+#processing-screen{display:none;text-align:center;padding:100px 20px;}
+.pulse{width:84px;height:84px;background:linear-gradient(135deg,#1a56db,#0f4c81);border-radius:50%;margin:0 auto 26px;display:flex;align-items:center;justify-content:center;font-size:34px;animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(26,86,219,.35);}50%{box-shadow:0 0 0 18px rgba(26,86,219,0);}}
+.prog-track{background:var(--border);border-radius:999px;height:8px;max-width:440px;margin:0 auto 18px;overflow:hidden;}
+.prog-fill{height:100%;background:linear-gradient(90deg,#1a56db,#06b6d4);border-radius:999px;transition:width .7s ease;width:0;}
+.proc-steps{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:14px;}
+.proc-step{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:7px 13px;font-size:12px;color:var(--ink3);transition:all .3s;}
+.proc-step.done{background:var(--green-pale);border-color:var(--green-border);color:var(--green);font-weight:700;}
+
+/* ═══════════════ RESULTS ═══════════════ */
+#results-screen{display:none;}
+.results-topbar{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;gap:16px;flex-wrap:wrap;}
+.btn-back{background:var(--surface);border:1.5px solid var(--border);border-radius:10px;padding:9px 18px;cursor:pointer;font-size:13px;font-weight:700;color:var(--ink);font-family:'Nunito',sans-serif;transition:all .2s;}
+.btn-back:hover{border-color:var(--blue);color:var(--blue);}
+
+/* urgency */
+.urgency{border-radius:var(--radius);padding:16px 20px;margin-bottom:16px;display:flex;gap:14px;align-items:flex-start;}
+.urgency.routine  {background:var(--green-pale);border:1.5px solid var(--green-border);}
+.urgency.followup {background:var(--amber-pale);border:1.5px solid var(--amber-border);}
+.urgency.urgent   {background:var(--red-pale);border:1.5px solid var(--red-border);}
+.urgency.emergency{background:#fff0f0;border:2px solid var(--red);}
+.urgency-icon{font-size:28px;line-height:1;}
+.urgency-title{font-weight:800;font-size:15px;margin-bottom:3px;}
+.urgency-detail{font-size:13px;opacity:.85;line-height:1.55;}
+.urgency.routine   .urgency-title{color:var(--green);}
+.urgency.followup  .urgency-title{color:var(--amber);}
+.urgency.urgent    .urgency-title,.urgency.emergency .urgency-title{color:var(--red);}
+
+/* coverage bar */
+.coverage{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 18px;margin-bottom:16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+.cov-label{font-size:12px;color:var(--ink3);font-weight:700;}
+.cov-track{flex:1;min-width:100px;background:var(--border);border-radius:999px;height:7px;overflow:hidden;}
+.cov-fill{height:100%;background:linear-gradient(90deg,var(--green),#06b6d4);border-radius:999px;transition:width 1.2s ease;}
+.cov-stat{font-size:12px;font-weight:700;color:var(--blue);}
+
+/* tabs */
+.tabs{display:flex;gap:3px;background:var(--surface);padding:4px;border-radius:12px;border:1px solid var(--border);width:fit-content;margin-bottom:22px;flex-wrap:wrap;}
+.tab-btn{padding:8px 20px;border-radius:9px;border:none;font-size:13px;font-weight:700;cursor:pointer;background:transparent;color:var(--ink3);transition:all .2s;font-family:'Nunito',sans-serif;}
+.tab-btn.active{background:linear-gradient(135deg,#1a56db,#0f4c81);color:#fff;box-shadow:0 2px 8px rgba(26,86,219,.3);}
+.tab-panel{display:none;}
+.tab-panel.active{display:block;animation:fadeUp .3s ease;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+
+/* cards */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:22px;margin-bottom:14px;box-shadow:var(--shadow);}
+.card-title{font-size:11px;font-weight:800;color:var(--ink3);text-transform:uppercase;letter-spacing:1.3px;margin-bottom:14px;}
+.summary-grid{display:grid;grid-template-columns:2fr 1fr;gap:14px;}
+
+/* stats */
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px;}
+.stat-pill{border-radius:10px;padding:14px;text-align:center;}
+.stat-num{font-size:30px;font-weight:800;font-family:'Lora',serif;}
+.stat-label{font-size:10px;color:var(--ink3);margin-top:2px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;}
+.stat-pill.abn{background:var(--red-pale);} .stat-pill.abn .stat-num{color:var(--red);}
+.stat-pill.nrm{background:var(--green-pale);} .stat-pill.nrm .stat-num{color:var(--green);}
+.stat-pill.tot{background:var(--blue-pale);} .stat-pill.tot .stat-num{color:var(--blue);}
+
+/* next steps */
+.step-item{display:flex;gap:12px;padding:11px 0;border-bottom:1px solid var(--border);align-items:flex-start;}
+.step-item:last-child{border-bottom:none;}
+.step-num{background:var(--orange);color:#fff;border-radius:50%;width:24px;height:24px;min-width:24px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;margin-top:1px;}
+.step-text{font-size:14px;color:var(--ink2);line-height:1.6;}
+
+/* conditions */
+.cond-tag{display:inline-flex;align-items:center;background:var(--purple-pale);border:1px solid var(--purple-border);color:var(--purple);padding:5px 13px;border-radius:999px;font-size:12.5px;font-weight:700;margin:3px;}
+
+/* ─── FINDINGS ─── */
+.filter-bar{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:18px;}
+.filter-btn{padding:5px 14px;border-radius:999px;border:1.5px solid var(--border);background:var(--surface);font-size:12px;font-weight:700;cursor:pointer;color:var(--ink3);transition:all .2s;font-family:'Nunito',sans-serif;}
+.filter-btn.active,.filter-btn:hover{background:var(--blue);color:#fff;border-color:var(--blue);}
+.findings-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px;}
+.fcard.hidden{display:none !important;}
+
+.fcard{background:var(--surface);border-radius:var(--radius);padding:18px;border:1px solid var(--border);transition:all .2s;position:relative;overflow:hidden;}
+.fcard::before{content:'';position:absolute;top:0;left:0;width:4px;height:100%;border-radius:4px 0 0 4px;}
+.fcard:hover{transform:translateY(-2px);box-shadow:var(--shadow-lg);}
+.fcard.high::before  {background:var(--red);}
+.fcard.low::before   {background:var(--blue);}
+.fcard.normal::before{background:var(--green);}
+.fcard.critical::before{background:var(--orange);}
+.fcard.abnormal::before{background:var(--purple);}
+.fcard-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;}
+.fcard-name{font-size:13.5px;font-weight:800;color:var(--ink);}
+.fcard-cat{font-size:10px;color:var(--ink3);font-weight:700;letter-spacing:.5px;text-transform:uppercase;margin-bottom:10px;}
+.fbadge{padding:3px 9px;border-radius:999px;font-size:11px;font-weight:800;}
+.fbadge.high   {background:var(--red-pale);color:var(--red);border:1px solid var(--red-border);}
+.fbadge.low    {background:var(--blue-pale);color:var(--blue);border:1px solid var(--blue-border);}
+.fbadge.normal {background:var(--green-pale);color:var(--green);border:1px solid var(--green-border);}
+.fbadge.critical{background:var(--orange-pale);color:var(--orange);border:1px solid var(--orange-border);}
+.fbadge.abnormal{background:var(--purple-pale);color:var(--purple);border:1px solid var(--purple-border);}
+.fval{font-size:26px;font-weight:800;font-family:'Lora',serif;}
+.fval.high,.fval.critical{color:var(--red);}
+.fval.low{color:var(--blue);}
+.fval.normal{color:var(--green);}
+.fval.abnormal{color:var(--purple);}
+.funit{font-size:12px;color:var(--ink3);margin-left:4px;}
+.frange{font-size:11px;color:var(--ink3);margin:5px 0 9px;font-weight:600;}
+.fexpl{font-size:13px;color:var(--ink2);line-height:1.55;}
+
+/* tooltip chip */
+.tooltip-wrap{position:relative;display:inline;}
+.tooltip-trigger{background:none;border:none;cursor:pointer;font-size:12px;color:var(--blue);font-weight:700;text-decoration:underline;text-decoration-style:dotted;font-family:'Nunito',sans-serif;padding:0;}
+.tooltip-box{display:none;position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;font-size:12px;border-radius:8px;padding:10px 13px;width:240px;line-height:1.55;z-index:100;box-shadow:0 4px 16px rgba(0,0,0,.2);}
+.tooltip-box::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border:6px solid transparent;border-top-color:var(--ink);}
+.tooltip-wrap:hover .tooltip-box,.tooltip-wrap:focus-within .tooltip-box{display:block;}
+
+/* expand button */
+.expand-btn{margin-top:10px;background:none;border:1.5px dashed var(--border2);border-radius:8px;width:100%;padding:7px 10px;font-size:12px;color:var(--ink3);cursor:pointer;text-align:left;font-family:'Nunito',sans-serif;transition:all .2s;font-weight:600;}
+.expand-btn:hover{background:var(--blue-pale);border-color:var(--blue);color:var(--blue);}
+.expand-body{display:none;margin-top:10px;background:var(--surface2);border-left:3px solid var(--blue-border);border-radius:0 8px 8px 0;padding:10px 12px;font-size:12px;color:var(--ink2);line-height:1.65;}
+.expand-body.open{display:block;}
+.expand-body strong{color:var(--ink);display:block;margin-bottom:3px;}
+
+/* ─── PRESCRIPTION SPECIFIC ─── */
+.rx-header{background:linear-gradient(135deg,#0f4c81,#1a56db);color:#fff;border-radius:var(--radius);padding:20px 24px;margin-bottom:16px;}
+.rx-header h3{font-family:'Lora',serif;font-size:20px;margin-bottom:4px;}
+.rx-header p{font-size:12px;opacity:.75;}
+.med-card{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);padding:18px 20px;margin-bottom:12px;transition:all .2s;}
+.med-card:hover{box-shadow:var(--shadow-lg);transform:translateY(-1px);}
+.med-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;gap:10px;}
+.med-name{font-size:17px;font-weight:800;color:var(--ink);}
+.med-generic{font-size:12px;color:var(--ink3);font-weight:400;font-style:italic;}
+.med-class-badge{background:var(--teal-pale);color:var(--teal);border:1px solid #a5f3fc;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:700;}
+.med-details{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:12px;}
+.med-detail-item{background:var(--surface2);border-radius:8px;padding:10px 12px;}
+.med-detail-label{font-size:10px;font-weight:800;color:var(--ink3);text-transform:uppercase;letter-spacing:.7px;margin-bottom:3px;}
+.med-detail-val{font-size:14px;font-weight:700;color:var(--ink);}
+.med-purpose{background:var(--blue-pale);border-left:3px solid var(--blue);border-radius:0 8px 8px 0;padding:10px 13px;font-size:13px;color:var(--ink2);line-height:1.55;margin-bottom:10px;}
+.med-warnings{background:var(--amber-pale);border-left:3px solid var(--amber-border);border-radius:0 8px 8px 0;padding:9px 12px;font-size:12px;color:var(--amber);line-height:1.55;}
+.timing-pills{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;}
+.timing-pill{padding:4px 10px;border-radius:999px;font-size:11px;font-weight:700;}
+.timing-pill.morning{background:#fff7ed;color:#c05621;border:1px solid #fcd9bd;}
+.timing-pill.afternoon{background:#fffbeb;color:#92400e;border:1px solid var(--amber-border);}
+.timing-pill.evening{background:#f5f3ff;color:#6c2bd9;border:1px solid var(--purple-border);}
+.timing-pill.night{background:#1e2a3a;color:#93c5fd;border:1px solid #3b5a8a;}
+.timing-pill.food{background:var(--green-pale);color:var(--green);border:1px solid var(--green-border);}
+.rx-schedule{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:16px;}
+.rx-schedule-title{background:var(--ink);color:#fff;padding:12px 20px;font-weight:800;font-size:14px;}
+.schedule-grid{display:grid;grid-template-columns:repeat(4,1fr);}
+.schedule-col{padding:14px 16px;border-right:1px solid var(--border);}
+.schedule-col:last-child{border-right:none;}
+.schedule-col h4{font-size:12px;font-weight:800;color:var(--ink3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--border);}
+.schedule-med{font-size:12px;padding:6px 8px;background:var(--surface2);border-radius:6px;margin-bottom:6px;line-height:1.4;}
+.schedule-med-name{font-weight:700;color:var(--ink);}
+.schedule-med-dose{color:var(--ink3);}
+
+/* ─── RADIOLOGY SPECIFIC ─── */
+.radio-header{background:linear-gradient(135deg,#111827,#1f2937);color:#fff;border-radius:var(--radius);padding:20px 24px;margin-bottom:16px;}
+.radio-header h3{font-family:'Lora',serif;font-size:20px;margin-bottom:4px;}
+.radio-header p{font-size:12px;opacity:.75;}
+.finding-card{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);padding:18px 20px;margin-bottom:12px;}
+.finding-severity{display:inline-block;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:800;margin-bottom:10px;}
+.sev-normal   {background:var(--green-pale);color:var(--green);border:1px solid var(--green-border);}
+.sev-mild     {background:var(--amber-pale);color:var(--amber);border:1px solid var(--amber-border);}
+.sev-moderate {background:var(--orange-pale);color:var(--orange);border:1px solid var(--orange-border);}
+.sev-severe   {background:var(--red-pale);color:var(--red);border:1px solid var(--red-border);}
+.sev-incidental{background:var(--blue-pale);color:var(--blue);border:1px solid var(--blue-border);}
+.finding-title{font-size:16px;font-weight:800;color:var(--ink);margin-bottom:6px;}
+.finding-location{font-size:12px;color:var(--ink3);font-weight:600;margin-bottom:10px;}
+.finding-desc{font-size:14px;color:var(--ink2);line-height:1.65;margin-bottom:12px;}
+.finding-plain{background:var(--blue-pale);border-left:3px solid var(--blue);border-radius:0 8px 8px 0;padding:10px 13px;font-size:13px;color:var(--ink2);line-height:1.55;margin-bottom:10px;}
+.finding-plain strong{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.7px;color:var(--blue);margin-bottom:4px;}
+.anatomy-section{background:var(--surface2);border-radius:var(--radius);padding:18px;margin-bottom:16px;}
+.anatomy-title{font-weight:800;font-size:15px;color:var(--ink);margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+.anatomy-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;}
+.anatomy-item{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px;}
+.anatomy-organ{font-size:12px;font-weight:800;color:var(--ink3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:4px;}
+.anatomy-status{font-size:13.5px;font-weight:700;}
+.anatomy-status.normal  {color:var(--green);}
+.anatomy-status.abnormal{color:var(--red);}
+.anatomy-status.borderline{color:var(--orange);}
+
+/* ─── TRENDS ─── */
+.trends-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:18px;}
+.tcard{background:var(--surface);border-radius:var(--radius);padding:20px;border:1px solid var(--border);box-shadow:var(--shadow);}
+.trend-indicator{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:700;padding:3px 9px;border-radius:999px;margin-top:6px;}
+.trend-up    {background:var(--red-pale);color:var(--red);}
+.trend-down  {background:var(--blue-pale);color:var(--blue);}
+.trend-stable{background:var(--green-pale);color:var(--green);}
+.info-note{background:var(--amber-pale);border:1px solid var(--amber-border);border-radius:10px;padding:10px 16px;font-size:12.5px;color:var(--amber);margin-bottom:14px;font-weight:600;}
+
+/* ─── EDUCATION ─── */
+.edu-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;}
+.edu-card{background:var(--surface);border-radius:var(--radius);padding:20px;border:1px solid var(--border);box-shadow:var(--shadow);}
+.edu-icon-wrap{width:42px;height:42px;background:var(--blue-pale);border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:12px;}
+.edu-title{font-size:15px;font-weight:800;color:var(--ink);margin-bottom:10px;}
+.edu-body{font-size:13px;color:var(--ink2);line-height:1.7;}
+.edu-section{margin-top:12px;background:var(--surface2);border-radius:8px;padding:10px 12px;}
+.edu-section-title{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:var(--ink3);margin-bottom:5px;}
+.edu-section-body{font-size:12.5px;color:var(--ink2);line-height:1.6;}
+
+@media(max-width:720px){
+  .summary-grid,.schedule-grid{grid-template-columns:1fr;}
+  .upload-hero h1{font-size:28px;}
+  .rtype-row{gap:8px;}
+  .rtype-btn{min-width:110px;padding:12px 16px;}
+  .findings-grid,.edu-grid{grid-template-columns:1fr;}
+  .stats-row{grid-template-columns:1fr 1fr;}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-mark">🩺</div>
+    <div class="logo-text">
+      <div class="name">MedInsight</div>
+      <div class="sub">Report Analyzer v14</div>
+    </div>
+  </div>
+  <span class="header-badge">Educational Use Only</span>
+</header>
+
+<main>
+
+<!-- ═══════════════════ UPLOAD ═══════════════════ -->
+<div id="upload-screen">
+  <div class="upload-hero">
+    <h1>Understand your<br/><em>medical report</em></h1>
+    <p>Upload any lab report, prescription, or radiology report. Get clear, plain-language explanations of every finding — designed for patients, not doctors.</p>
+  </div>
+
+  <div class="notice-strip">
+    🔒 <strong>Private &amp; secure:</strong> Your report is processed directly in your browser. Nothing is stored on any server. Always confirm findings with your doctor before making health decisions.
+  </div>
+
+  <!-- Report type selector -->
+  <div class="rtype-row" id="rtype-row">
+    <div class="rtype-btn active" data-type="blood" onclick="selectReportType(this,'blood')">
+      <span class="rtype-icon">🩸</span>
+      <span class="rtype-label">Blood Test</span>
+      <span class="rtype-desc">CBC, LFT, KFT, Lipids,<br/>Thyroid, Vitamins…</span>
+    </div>
+    <div class="rtype-btn" data-type="radiology" onclick="selectReportType(this,'radiology')">
+      <span class="rtype-icon">🫁</span>
+      <span class="rtype-label">Radiology</span>
+      <span class="rtype-desc">X-Ray, MRI, CT Scan,<br/>Ultrasound, Echo…</span>
+    </div>
+    <div class="rtype-btn" data-type="prescription" onclick="selectReportType(this,'prescription')">
+      <span class="rtype-icon">💊</span>
+      <span class="rtype-label">Prescription</span>
+      <span class="rtype-desc">Medicines, dosages,<br/>timing &amp; instructions…</span>
+    </div>
+
+  </div>
+
+  <div class="upload-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
+    <div class="upload-zone-icon">📤</div>
+    <div class="upload-zone-title">Drop your report here, or click to browse</div>
+    <div class="upload-zone-sub">
+      Supports PDF · JPG · PNG · WEBP &nbsp;·&nbsp; Max 10 MB<br/>
+      Works with any Indian hospital, diagnostic lab, or clinic format
+    </div>
+    <input type="file" id="file-input" accept=".pdf,.jpg,.jpeg,.png,.webp" style="display:none" onchange="handleFile(this.files[0])"/>
+  </div>
+
+  <div class="file-chip" id="file-chip">
+    <span style="font-size:22px;">📄</span>
+    <div>
+      <div style="font-size:13px;font-weight:700;color:var(--green);" id="fname"></div>
+      <div style="font-size:11px;color:var(--ink3);" id="fsize"></div>
+    </div>
+  </div>
+
+  <button class="btn-analyze" id="analyze-btn" onclick="startAnalysis()" disabled>Analyze My Report →</button>
+  <div class="err-box" id="err-box"></div>
+</div>
+
+<!-- ═══════════════════ PROCESSING ═══════════════════ -->
+<div id="processing-screen">
+  <div class="pulse">🧠</div>
+  <h2 class="serif" style="font-size:28px;color:var(--ink);margin-bottom:8px;">Analyzing Your Report</h2>
+  <p style="color:var(--ink3);font-size:14px;margin-bottom:30px;" id="proc-msg">Reading file…</p>
+  <div class="prog-track"><div class="prog-fill" id="prog-fill"></div></div>
+  <div class="proc-steps">
+    <div class="proc-step" id="step1">📄 Reading File</div>
+    <div class="proc-step" id="step2">🔬 Extracting Data</div>
+    <div class="proc-step" id="step3">✅ Validating</div>
+    <div class="proc-step" id="step4">📝 Building Report</div>
+  </div>
+</div>
+
+<!-- ═══════════════════ RESULTS ═══════════════════ -->
+<div id="results-screen">
+  <div class="results-topbar">
+    <div>
+      <h2 class="serif" style="font-size:24px;color:var(--ink);" id="r-title">Analysis</h2>
+      <div style="font-size:13px;color:var(--ink3);margin-top:3px;" id="r-meta"></div>
+    </div>
+    <button class="btn-back" onclick="resetApp()">← New Report</button>
+  </div>
+
+  <div id="r-urgency"></div>
+  <div class="coverage" id="r-coverage" style="display:none;">
+    <span class="cov-label">Parameters Validated</span>
+    <div class="cov-track"><div class="cov-fill" id="cov-fill" style="width:0%"></div></div>
+    <span class="cov-stat" id="cov-stat">—</span>
+  </div>
+
+  <div class="tabs" id="main-tabs">
+    <button class="tab-btn active" data-tab="summary">📋 Summary</button>
+    <button class="tab-btn" data-tab="findings">🔬 Findings</button>
+    <button class="tab-btn" data-tab="trends">📈 Trends</button>
+    <button class="tab-btn" data-tab="education">📚 Learn More</button>
+  </div>
+
+  <div class="tab-panel active" id="tab-summary"><div id="r-summary-content"></div></div>
+  <div class="tab-panel" id="tab-findings"><div id="r-findings-content"></div></div>
+  <div class="tab-panel" id="tab-trends"><div id="r-trends-content"></div></div>
+  <div class="tab-panel" id="tab-education"><div id="r-edu-content"></div></div>
+</div>
+
+</main>
+
+<footer style="text-align:center;padding:18px;font-size:11px;color:#9ca3af;border-top:1px solid var(--border);margin-top:20px;">
+  MedInsight v14 · Educational purposes only · Always consult a qualified doctor · Not a substitute for medical advice
+</footer>
+
+<script>
+/* ══════════════════════════════════════════
+   CONFIG — paste your FREE Groq API key here
+   Get one at: console.groq.com → API Keys
+   ══════════════════════════════════════════ */l
+const GROQ_API_KEY  = "";
+const GROQ_URL      = "https://api.groq.com/openai/v1/chat/completions";
+const MODEL_TEXT    = "llama-3.3-70b-versatile";      // 8192 output tokens on Groq
+const MODEL_VISION  = "meta-llama/llama-4-maverick-17b-128e-instruct";
+const MAX_TOKENS    = 8192;   // was 4096 — primary cause of truncated findings
+const MAX_BYTES     = 10 * 1024 * 1024;
+const MIN_FINDINGS  = { blood:5, prescription:1, radiology:1 }; // retry threshold
+
+/* ══════════════════════════════════════════
+   STATE
+   ══════════════════════════════════════════ */
+let currentFile   = null;
+let currentType   = 'blood';   // blood | radiology | prescription
+let currentResult = null;
+let chartObjs     = [];
+
+function selectReportType(el, type){
+  document.querySelectorAll('.rtype-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  currentType = type;
+}
+
+/* ══════════════════════════════════════════
+   BLOOD TEST — PARAMETER DATABASE
+   Standard clinical reference ranges — Age & Gender stratified (sources: WHO, ICMR/AIIMS, ADA, ATA, ACC/AHA, IDF)
+   Age groups: child(0-12), teen(13-17), adult(18-59), elderly(60+)
+   Gender keys: m=male, f=female, b=both (same range)
+   Each gender key can hold sub-keys: child, teen, adult, elderly
+   If no age sub-key, the value applies to all ages in that gender group
+   ══════════════════════════════════════════ */
+const PARAM_DB = [
+  {id:"hemoglobin",aliases:["hemoglobin","haemoglobin","hb","hgb","hb%","hgb%","hb level","haemoglobin level","hb (hemoglobin)"],exactOnly:["hb","hgb"],category:"CBC",unit:"g/dL",
+   m:{child:{min:11.5,max:15.5},teen:{min:12.5,max:17.0},adult:{min:13.0,max:17.0},elderly:{min:12.0,max:17.0}},
+   f:{child:{min:11.5,max:15.5},teen:{min:11.5,max:15.5},adult:{min:12.0,max:15.5},elderly:{min:11.5,max:15.5}},
+   criticalLow:7.0,criticalHigh:20.0,
+   edu:"Hemoglobin carries oxygen from lungs to every cell. Low hemoglobin (anemia) causes fatigue, pale skin, and breathlessness. Most common causes in India: iron deficiency and B12 deficiency.",
+   whatMeans:"The protein inside red blood cells that carries oxygen — like a truck fleet delivering oxygen throughout your body."},
+
+  {id:"pcv",aliases:["pcv","hct","hematocrit","haematocrit","packed cell volume","haematocrit (pcv/hct)"],exactOnly:["hct"],category:"CBC",unit:"%",
+   m:{child:{min:35,max:47},teen:{min:37,max:50},adult:{min:40,max:52},elderly:{min:37,max:50}},
+   f:{child:{min:35,max:47},teen:{min:35,max:45},adult:{min:36,max:47},elderly:{min:35,max:47}},
+   criticalLow:18,criticalHigh:60,
+   edu:"PCV shows what fraction of blood is red cells. Low = anemia. High = blood too thick, raising clot risk.",
+   whatMeans:"If you spun blood in a tube, PCV is the percentage filled by red cells."},
+
+  {id:"rbc",aliases:["rbc","total rbc","rbc count","total rbc count","red blood cell count","red cell count","total r.b.c. count","total r.b.c count","rbc (mill/cmm)","rbc mill/cmm","erythrocyte count","red blood cells"],exactOnly:["rbc"],category:"CBC",unit:"mill/cmm",
+   m:{child:{min:3.9,max:5.3},teen:{min:4.2,max:5.5},adult:{min:4.5,max:5.5},elderly:{min:4.0,max:5.5}},
+   f:{child:{min:3.9,max:5.3},teen:{min:3.9,max:5.2},adult:{min:3.9,max:5.0},elderly:{min:3.7,max:5.0}},
+   edu:"Low RBC = anemia. High RBC = thick blood, clot risk.",
+   whatMeans:"Total number of red blood cells in a small sample of your blood."},
+
+  {id:"mcv",aliases:["mcv","mean corpuscular volume","mean cell volume","m.c.v.","mean corpuscular volume (m.c.v.)"],exactOnly:["mcv"],category:"CBC",unit:"fL",
+   b:{child:{min:75,max:92},teen:{min:78,max:96},adult:{min:83,max:101},elderly:{min:80,max:101}},
+   edu:"Low MCV = small red cells (iron deficiency). High MCV = large cells (B12 or folate deficiency — very common in Indian vegetarians).",
+   whatMeans:"The average SIZE of red blood cells. Too small = iron deficiency; too large = B12/folate deficiency."},
+
+  {id:"mch",aliases:["mch","mean corpuscular hemoglobin","mean cell hemoglobin","m.c.h.","mean corpuscular hb (m.c.h.)"],exactOnly:["mch"],category:"CBC",unit:"pg",
+   b:{child:{min:24,max:30},teen:{min:26,max:32},adult:{min:27,max:33},elderly:{min:27,max:33}},
+   edu:"Low MCH = pale iron-deficient cells. High MCH = oversized B12-deficient cells.",
+   whatMeans:"The weight of hemoglobin in one average red blood cell."},
+
+  {id:"mchc",aliases:["mchc","mean corpuscular hemoglobin concentration","mean cell hemoglobin concentration","m.c.h.c.","mean corpuscular hb conc (m.c.h.c.)"],exactOnly:["mchc"],category:"CBC",unit:"g/dL",
+   b:{min:31.5,max:36.0},
+   edu:"MCHC measures how concentrated hemoglobin is inside each cell. Low = iron-deficiency anemia.",
+   whatMeans:"How 'full' each red blood cell is with hemoglobin. Low = pale, under-filled cells."},
+
+  {id:"rdw",aliases:["rdw","rdw-cv","rdw cv","rdw-sd","rdw sd","red cell distribution width","r.d.w.-cv","r.d.w.","red cell distribution width (r.d.w.-cv)"],exactOnly:["rdw"],category:"CBC",unit:"%",
+   b:{min:11.5,max:14.6},
+   edu:"High RDW means red cells vary greatly in size — classic sign of mixed nutritional deficiency (iron + B12/folate), very common in India.",
+   whatMeans:"How uniform red blood cells are in size. High = very unequal sizes, suggesting multiple nutritional deficiencies."},
+
+  {id:"wbc",aliases:["wbc","tlc","total leucocyte count","total leukocyte count","white blood cell count","total count","total w.b.c. count","total w.b.c count","wbc count"],exactOnly:["wbc","tlc"],category:"CBC",unit:"/uL",
+   b:{child:{min:5000,max:15000},teen:{min:4500,max:13000},adult:{min:4000,max:11000},elderly:{min:3500,max:10500}},
+   criticalLow:2000,criticalHigh:30000,
+   edu:"White blood cells fight infections. High = active infection/inflammation. Very low = serious immune vulnerability.",
+   whatMeans:"Your infection-fighting cells. High = battle happening; very low = defenseless against infections."},
+
+  {id:"neutrophils_pct",aliases:["neutrophils","neutrophil","polymorphs","neutrophils%","neutrophils (%)"],exactOnly:["pmn","neut"],category:"DLC",unit:"%",
+   b:{child:{min:30,max:65},teen:{min:35,max:70},adult:{min:40,max:75},elderly:{min:40,max:80}},
+   edu:"Very high neutrophil% = bacterial infection. Low = vulnerable to infections. High WBC + high neutrophils strongly suggests active bacterial infection.",
+   whatMeans:"Percentage of white cells that are front-line soldiers against bacteria."},
+
+  {id:"lymphocytes_pct",aliases:["lymphocytes","lymphocyte","lymphs","lymphocyte%","lymphocytes (%)"],exactOnly:["lymph"],category:"DLC",unit:"%",
+   b:{child:{min:25,max:65},teen:{min:25,max:50},adult:{min:20,max:45},elderly:{min:15,max:40}},
+   edu:"High lymphocytes = viral infection (dengue, typhoid, viral fever). Low = immune suppression or overwhelming bacterial infection.",
+   whatMeans:"Percentage of white cells that fight viruses and produce antibodies."},
+
+  {id:"monocytes_pct",aliases:["monocytes","monocyte","monocyte%","monocytes (%)"],exactOnly:["mono"],category:"DLC",unit:"%",
+   b:{min:2,max:10},
+   edu:"Monocytes clean up cellular debris. High suggests chronic infection or inflammatory disease.",
+   whatMeans:"Percentage of white cells that act as the cleanup crew of your immune system."},
+
+  {id:"eosinophils_pct",aliases:["eosinophils","eosinophil","eosinophil%","eosinophils (%)"],exactOnly:["eos"],category:"DLC",unit:"%",
+   b:{min:1,max:6},
+   edu:"High eosinophils in India most commonly indicate parasite/worm infection, allergies, or asthma.",
+   whatMeans:"Percentage of white cells that fight parasites and drive allergic reactions."},
+
+  {id:"basophils_pct",aliases:["basophils","basophil","basophil%","basophils (%)"],exactOnly:["baso"],category:"DLC",unit:"%",
+   b:{min:0,max:1},
+   edu:"Basophils are normally very rare. Consistent elevation should be discussed with a doctor.",
+   whatMeans:"The rarest white blood cell — normally near zero."},
+
+  {id:"anc",aliases:["anc","absolute neutrophil count","neutrophils (abs)","abs neutrophils","absolute neutrophil","abs neutrophil"],exactOnly:["anc"],category:"Absolute Counts",unit:"/uL",
+   b:{child:{min:1500,max:8500},teen:{min:1700,max:8000},adult:{min:1800,max:8800},elderly:{min:1500,max:8000}},
+   criticalLow:500,
+   edu:"ANC below 1000 = high infection risk. Below 500 = emergency — seek immediate medical care.",
+   whatMeans:"Actual count of neutrophils (not just %). Below 500 is a medical emergency."},
+
+  {id:"alc",aliases:["alc","absolute lymphocyte count","lymphocytes (abs)","abs lymphocytes","absolute lymphocyte"],exactOnly:["alc"],category:"Absolute Counts",unit:"/uL",
+   b:{child:{min:1500,max:8000},teen:{min:1200,max:5200},adult:{min:1000,max:4800},elderly:{min:1000,max:4000}},
+   edu:"Low ALC during illness is common and usually recovers. Persistently low needs investigation.",
+   whatMeans:"Actual count of virus-fighting lymphocyte cells."},
+
+  {id:"aec",aliases:["aec","absolute eosinophil count","eosinophils (abs)","abs eosinophils","absolute eosinophil"],exactOnly:["aec"],category:"Absolute Counts",unit:"/uL",
+   b:{min:0,max:500},criticalHigh:5000,
+   edu:"Above 500 needs investigation. Above 1500 = significant eosinophilia (parasites/allergy disorder). Above 5000 = can damage organs — urgent.",
+   whatMeans:"Actual count of eosinophils. Elevated levels often indicate parasites or severe allergic disease."},
+
+  {id:"amc",aliases:["amc","absolute monocyte count","monocytes (abs)","abs monocytes"],exactOnly:["amc"],category:"Absolute Counts",unit:"/uL",
+   b:{min:200,max:1000},
+   edu:"Slightly elevated during infection recovery is normal. Persistently high needs review.",
+   whatMeans:"Actual count of monocyte cells."},
+
+  {id:"abc_baso",aliases:["absolute basophil count","basophils (abs)","abs basophils"],category:"Absolute Counts",unit:"/uL",
+   b:{min:0,max:100},
+   edu:"Normally very low. Occasional slight elevation is not concerning.",
+   whatMeans:"Actual count of basophils — normally very few."},
+
+  {id:"platelets",aliases:["platelets","platelet count","thrombocyte count","thrombocytes","platelet","plt count"],exactOnly:["plt","plat"],category:"CBC",unit:"/uL",
+   b:{child:{min:150000,max:450000},teen:{min:150000,max:400000},adult:{min:150000,max:400000},elderly:{min:150000,max:400000}},
+   criticalLow:50000,criticalHigh:1000000,
+   edu:"Low platelets = dangerous bleeding risk (dengue fever is a common cause in India). Very low (<50,000) = urgent care. High = increased clot risk.",
+   whatMeans:"Tiny fragments that clump together to stop bleeding. Body's emergency repair team for wounds."},
+
+  {id:"mpv",aliases:["mpv","mean platelet volume","{ # } mpv"],exactOnly:["mpv"],category:"CBC",unit:"fL",
+   b:{min:6.5,max:12.0},
+   edu:"Large platelets = young, freshly made = bone marrow compensating for platelet loss (common in dengue, ITP).",
+   whatMeans:"Average size of platelets. Large = young and active; means body is making more to compensate."},
+
+  {id:"ipf",aliases:["ipf","immature platelet fraction","{ # } immature platelet fraction"],category:"CBC",unit:"%",
+   b:{min:1.0,max:5.0},
+   edu:"High IPF = bone marrow rapidly producing platelets because they're being destroyed. Low IPF + low platelets = bone marrow under-production.",
+   whatMeans:"Fraction of brand-new platelets just released from bone marrow. Tells doctors WHY platelet count is low."},
+
+  {id:"esr",aliases:["esr","erythrocyte sedimentation rate","sed rate","esr westergren"],exactOnly:["esr"],category:"Inflammation",unit:"mm/hr",
+   m:{child:{min:0,max:13},teen:{min:0,max:15},adult:{min:0,max:15},elderly:{min:0,max:20}},
+   f:{child:{min:0,max:13},teen:{min:0,max:20},adult:{min:0,max:20},elderly:{min:0,max:30}},
+   edu:"ESR is a general inflammation marker. Mildly elevated alone is not alarming. Very high ESR needs further investigation for infection, autoimmune, or malignancy.",
+   whatMeans:"How fast red cells settle in a test tube. Inflammation makes them clump and settle faster."},
+
+  {id:"alt",aliases:["alt","sgpt","alanine aminotransferase","alanine transaminase","alt/sgpt","sgpt/alt","s.g.p.t","serum sgpt","serum alt"],exactOnly:["alt"],category:"LFT",unit:"U/L",
+   m:{child:{min:7,max:40},teen:{min:7,max:40},adult:{min:7,max:45},elderly:{min:7,max:45}},
+   f:{child:{min:7,max:35},teen:{min:7,max:35},adult:{min:7,max:35},elderly:{min:7,max:40}},
+   criticalHigh:500,
+   edu:"ALT is the most specific indicator of liver cell damage. High ALT = liver inflammation from fatty liver, alcohol, medications, or hepatitis.",
+   whatMeans:"An enzyme that 'leaks' from liver cells when damaged. Best single indicator of liver stress."},
+
+  {id:"ast",aliases:["ast","sgot","aspartate aminotransferase","aspartate transaminase","ast/sgot","sgot/ast","s.g.o.t","serum sgot"],exactOnly:["ast"],category:"LFT",unit:"U/L",
+   b:{child:{min:10,max:50},teen:{min:10,max:45},adult:{min:10,max:40},elderly:{min:10,max:45}},
+   criticalHigh:500,
+   edu:"AST is in both liver and heart cells. High AST + high ALT = liver damage. High AST alone = possible heart or muscle problem.",
+   whatMeans:"An enzyme in liver and heart cells. Elevated alongside ALT confirms liver damage."},
+
+  {id:"alp",aliases:["alp","alkaline phosphatase","alk phos","alk phosphatase","serum alp"],exactOnly:["alp"],category:"LFT",unit:"U/L",
+   b:{child:{min:100,max:400},teen:{min:50,max:350},adult:{min:40,max:150},elderly:{min:40,max:190}},
+   edu:"High ALP with other liver tests = bile duct blockage or liver disease. Note: children and teens normally have high ALP due to growing bones — this is not abnormal.",
+   whatMeans:"An enzyme in liver, bile ducts, and bones. High in growing children (normal). In adults, helps identify liver vs bone problems."},
+
+  {id:"ggt",aliases:["ggt","ggtp","gamma gt","gamma glutamyl transferase","gamma-gt","serum ggt"],exactOnly:["ggt","ggtp"],category:"LFT",unit:"U/L",
+   m:{child:{min:2,max:22},teen:{min:2,max:22},adult:{min:8,max:61},elderly:{min:8,max:70}},
+   f:{child:{min:2,max:22},teen:{min:2,max:22},adult:{min:5,max:36},elderly:{min:5,max:42}},
+   edu:"GGT is very sensitive to alcohol use and bile duct problems. Even moderate regular alcohol intake raises GGT.",
+   whatMeans:"A liver enzyme highly sensitive to alcohol and bile duct problems."},
+
+  {id:"total_bilirubin",aliases:["total bilirubin","bilirubin total","serum bilirubin total","t bilirubin","t.bil","bilirubin (total)","t.bilirubin","s.bilirubin","serum bilirubin","bilirubin","bil total"],exactOnly:["tbil"],category:"LFT",unit:"mg/dL",
+   b:{child:{min:0.1,max:1.0},teen:{min:0.1,max:1.0},adult:{min:0.2,max:1.2},elderly:{min:0.2,max:1.2}},
+   criticalHigh:12.0,
+   edu:"High bilirubin causes jaundice (yellow skin/eyes). Indicates liver disease, bile duct blockage, or excessive red cell breakdown.",
+   whatMeans:"A yellow pigment from recycled red blood cells. Liver filters it out — buildup turns skin and eyes yellow."},
+
+  {id:"direct_bilirubin",aliases:["direct bilirubin","bilirubin direct","conjugated bilirubin","d.bil","bilirubin (direct)"],exactOnly:["dbil"],category:"LFT",unit:"mg/dL",
+   b:{min:0,max:0.3},
+   edu:"High direct bilirubin specifically points to a liver problem or bile duct blockage.",
+   whatMeans:"Bilirubin already processed by the liver. High = liver or bile duct obstruction."},
+
+  {id:"albumin",aliases:["albumin","serum albumin","s.albumin"],exactOnly:["alb"],category:"LFT",unit:"g/dL",
+   b:{child:{min:3.4,max:5.0},teen:{min:3.4,max:5.0},adult:{min:3.4,max:5.0},elderly:{min:3.2,max:4.8}},
+   edu:"Albumin is made by the liver and keeps fluid inside blood vessels. Low = liver disease, malnutrition, or kidney protein loss.",
+   whatMeans:"Main protein in blood, made by the liver. Low levels are a serious sign of liver, kidney, or nutritional problems."},
+
+  {id:"total_protein",aliases:["total protein","serum total protein","protein total","protein (total)"],exactOnly:["tp"],category:"LFT",unit:"g/dL",
+   b:{child:{min:5.5,max:8.0},teen:{min:6.0,max:8.0},adult:{min:6.0,max:8.3},elderly:{min:6.0,max:8.0}},
+   edu:"Low = malnutrition or liver disease. High = dehydration or immune system overactivity.",
+   whatMeans:"Combined albumin + globulin (immune proteins) in your blood."},
+
+  {id:"creatinine",aliases:["creatinine","serum creatinine","s.creatinine","s creatinine","serum creat","creat"],exactOnly:["crea"],category:"KFT",unit:"mg/dL",
+   m:{child:{min:0.3,max:0.7},teen:{min:0.5,max:1.0},adult:{min:0.7,max:1.3},elderly:{min:0.7,max:1.2}},
+   f:{child:{min:0.3,max:0.7},teen:{min:0.4,max:0.9},adult:{min:0.5,max:1.0},elderly:{min:0.5,max:1.0}},
+   criticalHigh:10.0,
+   edu:"High creatinine = kidneys not filtering well. Staying hydrated is important. Very high creatinine is a medical emergency.",
+   whatMeans:"Kidney waste that healthy kidneys filter out. High levels mean the kidney drain is clogged."},
+
+  {id:"blood_urea",aliases:["blood urea","serum urea","urea","s.urea","urea level","urea (blood)"],exactOnly:["urea"],category:"KFT",unit:"mg/dL",
+   b:{child:{min:10,max:35},teen:{min:12,max:40},adult:{min:15,max:45},elderly:{min:15,max:50}},
+   edu:"High urea = kidney stress, dehydration, or very high protein intake. Read alongside creatinine.",
+   whatMeans:"Waste from protein digestion that kidneys must filter out."},
+
+  {id:"uric_acid",aliases:["uric acid","serum uric acid","s.uric acid","urate","uric acid (serum)"],category:"KFT",unit:"mg/dL",
+   m:{child:{min:2.0,max:5.5},teen:{min:2.5,max:6.5},adult:{min:3.5,max:7.0},elderly:{min:3.5,max:7.5}},
+   f:{child:{min:2.0,max:5.0},teen:{min:2.0,max:5.5},adult:{min:2.5,max:5.7},elderly:{min:2.5,max:6.5}},
+   criticalHigh:12.0,
+   edu:"High uric acid causes gout — sudden, excruciating joint pain (usually the big toe). Reducing red meat, seafood, and alcohol helps significantly.",
+   whatMeans:"Waste from breaking down purines in food. Excess forms sharp crystals in joints, causing gout."},
+
+  {id:"egfr",aliases:["egfr","estimated gfr","estimated glomerular filtration rate","creatinine clearance","gfr (estimated)"],exactOnly:["gfr","egfr"],category:"KFT",unit:"mL/min/1.73m²",
+   b:{child:{min:90,max:160},teen:{min:90,max:150},adult:{min:60,max:120},elderly:{min:45,max:120}},
+   edu:"Above 90 = excellent. 60–89 = mildly reduced. Below 60 = reduced kidney function needing specialist care. Note: elderly individuals may have lower eGFR without active disease. Higher is better.",
+   whatMeans:"A score for kidney filtering efficiency. Below 60 means kidneys are working at less than half normal capacity."},
+
+  {id:"cholesterol",aliases:["cholesterol","total cholesterol","serum cholesterol","t.chol","total chol","cholesterol (total)"],exactOnly:["chol","tc"],category:"Lipids",unit:"mg/dL",
+   b:{child:{min:0,max:170},teen:{min:0,max:190},adult:{min:0,max:200},elderly:{min:0,max:200}},
+   criticalHigh:300,
+   edu:"High cholesterol silently clogs arteries, raising heart attack and stroke risk. Diet, exercise, and medication can lower it.",
+   whatMeans:"Total fat-like molecules in blood. Overall balance between good and bad cholesterol matters most."},
+
+  {id:"triglycerides",aliases:["triglycerides","triglyceride","serum triglycerides","triglyceride level"],exactOnly:["tgl","trig"],category:"Lipids",unit:"mg/dL",
+   b:{child:{min:0,max:100},teen:{min:0,max:130},adult:{min:0,max:150},elderly:{min:0,max:150}},
+   criticalHigh:500,
+   edu:"Very high triglycerides are common in India due to high sugar and refined carb intake. Raise heart disease and pancreatitis risk.",
+   whatMeans:"Blood fats formed from excess calories (sugar, alcohol, rice). High = too much grease in blood vessels."},
+
+  {id:"hdl",aliases:["hdl","hdl cholesterol","hdl-c","hdl-cholesterol","good cholesterol","hdl chol"],exactOnly:["hdl"],category:"Lipids",unit:"mg/dL",
+   m:{child:{min:35,max:100},teen:{min:35,max:100},adult:{min:40,max:100},elderly:{min:40,max:100}},
+   f:{child:{min:35,max:100},teen:{min:40,max:100},adult:{min:50,max:100},elderly:{min:50,max:100}},
+   edu:"HDL is the 'good' cholesterol — cleans bad cholesterol from arteries. Higher is better. Exercise and healthy fats raise HDL.",
+   whatMeans:"Good cholesterol that acts like a garbage truck, removing bad cholesterol from arteries."},
+
+  {id:"ldl",aliases:["ldl","ldl cholesterol","ldl-c","ldl-cholesterol","bad cholesterol","ldl chol"],exactOnly:["ldl"],category:"Lipids",unit:"mg/dL",
+   b:{child:{min:0,max:110},teen:{min:0,max:110},adult:{min:0,max:130},elderly:{min:0,max:130}},
+   criticalHigh:190,
+   edu:"LDL deposits in artery walls, narrowing them over time. Reducing fried food, ghee, red meat, and dairy fat lowers LDL.",
+   whatMeans:"Bad cholesterol that sticks to artery walls like sludge, narrowing them over time."},
+
+  {id:"fbs",aliases:["fbs","fasting blood sugar","fasting glucose","fasting blood glucose","fbg","glucose fasting","f.b.s","f.b.g","glucose (fasting)"],exactOnly:["fbs","fbg"],category:"Diabetes",unit:"mg/dL",
+   b:{child:{min:60,max:100},teen:{min:65,max:100},adult:{min:70,max:100},elderly:{min:70,max:110}},
+   criticalLow:50,criticalHigh:400,
+   edu:"Above 126 mg/dL on two occasions = diabetes. 100–125 = pre-diabetes (reversible with lifestyle changes). Below 70 = dangerous low blood sugar. Note: elderly may have slightly higher acceptable range.",
+   whatMeans:"Blood sugar level after 8 hours of fasting — the standard diabetes screening test."},
+
+  {id:"hba1c",aliases:["hba1c","hb a1c","glycated hemoglobin","glycated haemoglobin","hemoglobin a1c","hba1c%","glycosylated hemoglobin","glycohaemoglobin","glycated hb"],exactOnly:["a1c"],category:"Diabetes",unit:"%",
+   b:{child:{min:4.0,max:5.6},teen:{min:4.0,max:5.6},adult:{min:4.0,max:5.6},elderly:{min:4.0,max:6.5}},
+   criticalHigh:14.0,
+   edu:"HbA1c gives 3-month average blood sugar — unaffected by what you ate today. Above 6.5% = diabetes. 5.7–6.4% = pre-diabetes. Note: target may be slightly relaxed in elderly patients.",
+   whatMeans:"Sugar sticks to hemoglobin for 3 months — this measures how much has stuck, revealing long-term blood sugar average."},
+
+  {id:"tsh",aliases:["tsh","thyroid stimulating hormone","s.tsh","serum tsh","tsh (3rd gen)","tsh ultrasensitive"],exactOnly:["tsh"],category:"Thyroid",unit:"mIU/L",
+   b:{child:{min:0.7,max:6.4},teen:{min:0.5,max:5.0},adult:{min:0.4,max:4.0},elderly:{min:0.4,max:6.0}},
+   criticalLow:0.01,criticalHigh:10.0,
+   edu:"High TSH = underactive thyroid (hypothyroidism) — very common in Indian women and elderly. Causes fatigue, weight gain, hair loss. Low TSH = overactive thyroid. TSH range is wider in children and elderly — this is normal.",
+   whatMeans:"Brain's signal telling the thyroid to work. High = thyroid needs more encouragement (underactive). Low = thyroid is overworking (overactive)."},
+
+  {id:"ft4",aliases:["ft4","free t4","free thyroxine","f.t4","free t4 (ft4)"],exactOnly:["ft4"],category:"Thyroid",unit:"ng/dL",
+   b:{child:{min:0.9,max:2.3},teen:{min:0.8,max:2.0},adult:{min:0.8,max:1.8},elderly:{min:0.8,max:1.6}},
+   edu:"Free T4 with high TSH confirms hypothyroidism. Used to guide thyroid hormone dosing.",
+   whatMeans:"The unbound thyroid hormone available to body cells — the most actionable thyroid measurement."},
+
+  {id:"ft3",aliases:["ft3","free t3","free triiodothyronine","f.t3","free t3 (ft3)"],exactOnly:["ft3"],category:"Thyroid",unit:"pg/mL",
+   b:{child:{min:2.5,max:5.0},teen:{min:2.3,max:4.8},adult:{min:2.3,max:4.2},elderly:{min:2.0,max:4.0}},
+   edu:"Free T3 is the active form of thyroid hormone. Low = hypothyroid symptoms; high = hyperthyroid symptoms.",
+   whatMeans:"The active thyroid hormone directly controlling your metabolism speed."},
+
+  {id:"vitb12",aliases:["vitamin b12","vit b12","cobalamin","serum b12","s.b12","vitamin b-12","b12 level"],exactOnly:["b12"],category:"Vitamins",unit:"pg/mL",
+   b:{min:200,max:900},criticalLow:100,
+   edu:"B12 deficiency is the most common nutritional problem in Indian vegetarians. Causes fatigue, nerve tingling, weakness, memory problems. Requires injections or high-dose supplements — diet alone rarely sufficient.",
+   whatMeans:"A vitamin found only in animal products that brain and nerves depend on. Deficiency is extremely common in vegetarians."},
+
+  {id:"vitd",aliases:["vitamin d","vit d","25-oh vitamin d","25 hydroxy vitamin d","25(oh)d","vitamin d3","s.vitamin d","vitamin d (25-oh)","vitamin d, 25-hydroxy"],exactOnly:["vitd"],category:"Vitamins",unit:"ng/mL",
+   b:{child:{min:20,max:100},teen:{min:20,max:100},adult:{min:30,max:100},elderly:{min:30,max:100}},
+   criticalLow:10,
+   edu:"Vitamin D deficiency affects up to 80% of Indians. Causes bone pain, fatigue, frequent infections. Treatment: 60,000 IU weekly for 8–12 weeks, then monthly maintenance. Children need lower threshold (20 ng/mL sufficient).",
+   whatMeans:"The 'sunshine vitamin' essential for bones, immunity, and mood. Most Indians are deficient due to indoor lifestyles."},
+
+  {id:"ferritin",aliases:["ferritin","serum ferritin","s.ferritin","ferritin level","ferritin (serum)"],exactOnly:["ferritin"],category:"Iron Studies",unit:"ng/mL",
+   m:{child:{min:10,max:120},teen:{min:12,max:150},adult:{min:20,max:300},elderly:{min:20,max:300}},
+   f:{child:{min:10,max:120},teen:{min:10,max:80},adult:{min:10,max:120},elderly:{min:10,max:120}},
+   criticalLow:5,
+   edu:"Ferritin is your body's iron storage — earliest sign of iron deficiency. Very high = inflammation, liver disease, or iron overload.",
+   whatMeans:"Your iron reserve. Like a fuel gauge — low ferritin means reserves nearly empty even if hemoglobin looks OK."},
+
+  {id:"crp",aliases:["crp","c-reactive protein","c reactive protein","hs-crp","hscrp","high sensitivity crp","crp (hs)"],exactOnly:["crp"],category:"Inflammation",unit:"mg/L",
+   b:{min:0,max:6.0},criticalHigh:100,
+   edu:"CRP is an inflammation alarm made by liver within hours of any infection or injury. Very high = serious infection. hs-CRP predicts future heart disease risk.",
+   whatMeans:"An inflammation alarm: liver releases it within hours of infection. Like a fire alarm — tells you something's wrong."},
+
+  {id:"sodium",aliases:["sodium","serum sodium","s.sodium","sodium (na)","serum na"],exactOnly:["na","na+"],category:"Electrolytes",unit:"mEq/L",
+   b:{child:{min:133,max:145},teen:{min:135,max:145},adult:{min:136,max:145},elderly:{min:136,max:145}},
+   criticalLow:120,criticalHigh:160,
+   edu:"Sodium controls fluid balance. Low = nausea, headache, confusion, seizures. High = severe dehydration.",
+   whatMeans:"Main salt in blood that controls how much water stays in blood vessels. Critical for brain and muscle function."},
+
+  {id:"potassium",aliases:["potassium","serum potassium","s.potassium","potassium (k)","serum k"],exactOnly:["k","k+"],category:"Electrolytes",unit:"mEq/L",
+   b:{child:{min:3.4,max:5.0},teen:{min:3.5,max:5.1},adult:{min:3.5,max:5.1},elderly:{min:3.5,max:5.5}},
+   criticalLow:2.5,criticalHigh:6.5,
+   edu:"Potassium is essential for heart rhythm. Low = muscle cramps, dangerous irregular heartbeat. High = can cause sudden cardiac arrest. Both extremes are medical emergencies.",
+   whatMeans:"A mineral critical for heart rhythm. Too little or too much can cause life-threatening heart rhythm problems."},
+
+  /* ── Iron Studies (expanded) ── */
+  {id:"serum_iron",aliases:["serum iron","s.iron","iron","iron serum","iron level","serum fe","fe serum"],category:"Iron Studies",unit:"µg/dL",
+   m:{min:65,max:175},f:{min:50,max:170},
+   criticalLow:20,
+   edu:"Low serum iron = iron deficiency (confirm with ferritin). High iron = liver disease or haemochromatosis (iron overload). Read alongside TIBC and ferritin for full picture.",
+   whatMeans:"The amount of iron actually circulating in your blood right now — part of a trio with ferritin and TIBC to diagnose iron deficiency."},
+
+  {id:"tibc",aliases:["tibc","total iron binding capacity","total iron-binding capacity","iron binding capacity"],category:"Iron Studies",unit:"µg/dL",
+   b:{min:250,max:450},
+   edu:"TIBC rises when iron stores are low (the body makes more 'hooks' to catch available iron). High TIBC + low ferritin = iron deficiency anemia.",
+   whatMeans:"How much iron your blood COULD carry. High = your body is hungry for more iron."},
+
+  {id:"transferrin_sat",aliases:["transferrin saturation","transferrin sat","% saturation","percent saturation","sat %","transferrin saturation (%)"],category:"Iron Studies",unit:"%",
+   b:{min:20,max:50},
+   edu:"Below 16% = iron deficiency. Above 50% = iron overload (haemochromatosis). Calculated from serum iron ÷ TIBC.",
+   whatMeans:"What percentage of iron-carrying proteins are actually filled with iron. Like checking how full the delivery trucks are."},
+
+  /* ── Electrolytes (expanded) ── */
+  {id:"calcium",aliases:["calcium","serum calcium","s.calcium","total calcium","ca","calcium (total)","serum ca"],exactOnly:["ca2+"],category:"Electrolytes",unit:"mg/dL",
+   b:{child:{min:8.8,max:10.8},teen:{min:8.5,max:10.2},adult:{min:8.5,max:10.5},elderly:{min:8.5,max:10.2}},
+   criticalLow:7.0,criticalHigh:13.0,
+   edu:"Low calcium causes muscle cramps, numbness, seizures (hypocalcaemia). High calcium causes kidney stones, confusion, weakness (hypercalcaemia — check for hyperparathyroidism).",
+   whatMeans:"The mineral in your blood needed for strong bones, muscle contractions, and nerve function. Too little or too much causes serious problems."},
+
+  {id:"phosphorus",aliases:["phosphorus","phosphate","serum phosphorus","inorganic phosphorus","s.phosphorus","phosphorus (inorganic)","serum phosphate"],category:"Electrolytes",unit:"mg/dL",
+   b:{child:{min:4.0,max:7.0},teen:{min:3.5,max:6.0},adult:{min:2.5,max:4.5},elderly:{min:2.5,max:4.5}},
+   edu:"High phosphorus + low calcium = kidney disease or hypoparathyroidism. Low phosphorus = malnutrition or overuse of antacids.",
+   whatMeans:"A mineral that works with calcium for bone health and energy production. Kidney disease often raises phosphorus levels."},
+
+  {id:"magnesium",aliases:["magnesium","serum magnesium","s.magnesium","mg","magnesium (serum)"],exactOnly:["mg2+"],category:"Electrolytes",unit:"mg/dL",
+   b:{min:1.7,max:2.4},criticalLow:1.0,criticalHigh:4.9,
+   edu:"Low magnesium = muscle cramps, tremors, irregular heartbeat, anxiety. Very common in diabetics and alcoholics. Often missed because it is not tested routinely.",
+   whatMeans:"A mineral needed for over 300 body processes including muscle function, blood pressure, and blood sugar control."},
+
+  {id:"chloride",aliases:["chloride","serum chloride","s.chloride","cl","chloride (serum)"],exactOnly:["cl-"],category:"Electrolytes",unit:"mEq/L",
+   b:{min:98,max:107},
+   edu:"Usually rises and falls with sodium. Abnormal chloride alongside abnormal sodium and potassium can indicate acid-base disorders.",
+   whatMeans:"An electrolyte that helps maintain fluid balance and works alongside sodium. Rarely abnormal on its own."},
+
+  {id:"bicarbonate",aliases:["bicarbonate","hco3","serum bicarbonate","total co2","tco2","co2","bicarbonate (hco3)"],category:"Electrolytes",unit:"mEq/L",
+   b:{min:22,max:29},criticalLow:10,criticalHigh:40,
+   edu:"Low bicarbonate = acidosis (blood too acidic — diabetes, kidney failure). High = alkalosis (blood too alkaline — vomiting, diuretics). A critical acid-base marker.",
+   whatMeans:"Your blood's main acid buffer. Low = blood is becoming dangerously acidic. High = too alkaline."},
+
+  /* ── Liver (additional) ── */
+  {id:"indirect_bilirubin",aliases:["indirect bilirubin","bilirubin indirect","unconjugated bilirubin","i.bil","indirect serum bilirubin","bilirubin (indirect)"],exactOnly:["ibil"],category:"LFT",unit:"mg/dL",
+   b:{min:0.1,max:1.0},
+   edu:"High indirect bilirubin = excessive red cell destruction (haemolysis) or Gilbert's syndrome (harmless genetic variant). Calculate: Indirect = Total − Direct.",
+   whatMeans:"Bilirubin not yet processed by the liver. High levels suggest your red cells are breaking down too fast."},
+
+  {id:"globulin",aliases:["globulin","serum globulin","total globulin","globulin level"],category:"LFT",unit:"g/dL",
+   b:{min:2.0,max:3.5},
+   edu:"High globulin = chronic infection, inflammation, or immune disorder. Low globulin = malnutrition or immunodeficiency.",
+   whatMeans:"The immune proteins in your blood. High = immune system is very active. Low = immune system is depleted."},
+
+  {id:"ag_ratio",aliases:["a/g ratio","albumin globulin ratio","a:g ratio","ag ratio","albumin/globulin ratio"],category:"LFT",unit:"",
+   b:{min:1.1,max:2.5},
+   edu:"Low A/G ratio = liver disease, kidney disease, or immune hyperactivity (globulin high). High A/G ratio = rare, usually not clinically significant.",
+   whatMeans:"The balance between albumin (a liver protein) and globulin (immune proteins). Imbalance points to liver or immune problems."},
+
+  /* ── Additional LFT ── */
+
+  /* ── Cardiac markers ── */
+  {id:"troponin_i",aliases:["troponin i","troponin-i","troponin i (ctn-i)","ctni","cardiac troponin i","hs troponin i","high sensitivity troponin i"],category:"Cardiac",unit:"ng/mL",
+   b:{min:0,max:0.04},criticalHigh:0.4,
+   edu:"Troponin I rises within 3-6 hours of a heart attack and stays elevated for days. Even mildly elevated troponin needs urgent medical evaluation. It is the most specific marker of heart muscle damage.",
+   whatMeans:"A protein released from damaged heart muscle. Even small rises can mean a heart attack is happening or has recently occurred — this is an emergency marker."},
+
+  {id:"troponin_t",aliases:["troponin t","troponin-t","ctn-t","ctnt","cardiac troponin t","hs troponin t","high sensitivity troponin t","hs-ctnt"],category:"Cardiac",unit:"ng/mL",
+   b:{min:0,max:0.01},criticalHigh:0.1,
+   edu:"High sensitivity Troponin T (hs-cTnT) is the newer standard. Even small elevations above 0.014 ng/mL are significant for heart attack diagnosis.",
+   whatMeans:"A very sensitive marker for heart muscle damage. Can detect tiny heart attacks that older tests would miss."},
+
+  {id:"ck_mb",aliases:["ck-mb","ck mb","creatine kinase mb","creatine phosphokinase mb","cpk-mb","ck-mb fraction"],category:"Cardiac",unit:"U/L",
+   b:{min:0,max:25},criticalHigh:50,
+   edu:"CK-MB rises 4-6 hours after heart attack, peaks at 12-24 hours. Now largely replaced by troponin but still reported in many Indian labs.",
+   whatMeans:"An enzyme from heart muscle. Elevated after a heart attack, but troponin is more accurate."},
+
+  {id:"cpk",aliases:["cpk","ck","creatine kinase","creatine phosphokinase","total ck","total cpk","serum cpk","serum ck"],category:"Cardiac",unit:"U/L",
+   m:{min:38,max:308},f:{min:26,max:192},criticalHigh:1000,
+   edu:"Total CK is in heart, brain, and muscle. Very high CK = severe muscle damage (rhabdomyolysis) or heart attack. Moderate elevation = strenuous exercise or muscle injury.",
+   whatMeans:"An enzyme from muscle cells (heart and skeletal). Elevated after muscle damage, exercise, injections, or heart attacks."},
+
+  {id:"ldh",aliases:["ldh","lactic acid dehydrogenase","lactate dehydrogenase","serum ldh","s.ldh"],category:"Cardiac",unit:"U/L",
+   b:{min:120,max:246},criticalHigh:1000,
+   edu:"High LDH = tissue damage anywhere in the body — heart, liver, kidneys, blood cells. Non-specific but useful for monitoring cancer treatment response and haemolysis.",
+   whatMeans:"A general tissue damage marker — when cells are injured or dying, they release LDH into the blood."},
+
+  /* ── Hormones ── */
+  {id:"fsh",aliases:["fsh","follicle stimulating hormone","serum fsh","s.fsh","fsh level"],category:"Hormones",unit:"mIU/mL",
+   m:{min:1.5,max:12.4},
+   f:{child:{min:0.16,max:4.1},teen:{min:0.16,max:9.0},adult:{min:3.5,max:12.5},elderly:{min:25.8,max:134.8}},
+   edu:"High FSH in women = menopause or premature ovarian failure. High FSH in men = testicular failure. Low FSH = pituitary disorder. Post-menopausal women have very high FSH normally.",
+   whatMeans:"A hormone from the brain that controls ovary and testis function. Tells you about fertility and reproductive health."},
+
+  {id:"lh",aliases:["lh","luteinizing hormone","serum lh","s.lh","lh level"],category:"Hormones",unit:"mIU/mL",
+   m:{min:1.7,max:8.6},
+   f:{child:{min:0.02,max:0.18},teen:{min:0.02,max:4.7},adult:{min:2.4,max:12.6},elderly:{min:14.2,max:52.3}},
+   edu:"LH and FSH together diagnose hormonal disorders. High LH in women = PCOS or menopause. Low LH = pituitary disorder.",
+   whatMeans:"A brain hormone that triggers ovulation in women and testosterone production in men."},
+
+  {id:"prolactin",aliases:["prolactin","serum prolactin","s.prolactin","prl","prolactin level"],category:"Hormones",unit:"ng/mL",
+   m:{min:2.0,max:18.0},f:{min:2.0,max:29.0},criticalHigh:200,
+   edu:"High prolactin = pituitary adenoma (most common cause), hypothyroidism, or medication side effect. Causes irregular periods, milky breast discharge, or infertility. Very common condition in Indian women.",
+   whatMeans:"A hormone that normally rises during pregnancy and breastfeeding. High levels outside these situations = hormonal imbalance."},
+
+  {id:"testosterone",aliases:["testosterone","serum testosterone","total testosterone","s.testosterone","testosterone (total)"],category:"Hormones",unit:"ng/dL",
+   m:{child:{min:2,max:20},teen:{min:100,max:1200},adult:{min:300,max:1000},elderly:{min:200,max:900}},
+   f:{min:15,max:70},criticalLow:50,
+   edu:"Low testosterone in men = fatigue, low libido, depression, muscle loss. High testosterone in women = PCOS. In teenage boys, low testosterone causes delayed puberty.",
+   whatMeans:"The main male sex hormone. Important for both men and women — too little or too much causes hormonal imbalance."},
+
+  {id:"psa",aliases:["psa","prostate specific antigen","total psa","s.psa","psa total","serum psa"],category:"Hormones",unit:"ng/mL",
+   m:{child:{min:0,max:0.5},teen:{min:0,max:0.5},adult:{min:0,max:4.0},elderly:{min:0,max:6.5}},
+   criticalHigh:20.0,
+   edu:"PSA is a prostate cancer screening marker. 4-10 ng/mL = 'grey zone' (biopsy often needed). Above 10 = higher risk of prostate cancer. Also elevated by BPH, prostatitis, and recent ejaculation.",
+   whatMeans:"A protein made by the prostate gland. Used to screen for prostate cancer in men — elevated levels need further investigation."},
+
+  {id:"insulin_fasting",aliases:["fasting insulin","insulin fasting","serum insulin","insulin level","s.insulin"],category:"Diabetes",unit:"µIU/mL",
+   b:{min:2.6,max:24.9},
+   edu:"High fasting insulin = insulin resistance (pre-diabetes, PCOS, metabolic syndrome). Low fasting insulin in a diabetic = pancreas failing to produce insulin (Type 1 or late Type 2).",
+   whatMeans:"The hormone that moves sugar from blood into cells. High fasting levels = your body needs more and more insulin to do the same job (insulin resistance)."},
+
+  /* ── Urine routine (common in Indian reports) ── */
+  {id:"urine_protein",aliases:["urine protein","protein in urine","urine albumin","microalbuminuria","albuminuria","protein urine","urine protein (spot)"],category:"Urine",unit:"mg/dL",
+   b:{min:0,max:14},
+   edu:"Protein in urine = kidneys are leaking protein (proteinuria). Common causes: diabetes, hypertension, kidney infection. Persistent proteinuria needs specialist evaluation.",
+   whatMeans:"Healthy kidneys keep protein in your blood. Finding protein in urine = the kidney filter is leaking."},
+
+  {id:"urine_glucose",aliases:["urine glucose","urine sugar","glucose in urine","glycosuria"],category:"Urine",unit:"",
+   b:{min:0,max:0},
+   edu:"Glucose in urine = blood sugar is very high (above renal threshold of ~180 mg/dL). This strongly suggests uncontrolled diabetes or very high stress response.",
+   whatMeans:"Sugar should not be in urine. When blood sugar is too high, kidneys spill sugar out — this is a warning sign for diabetes."},
+
+  {id:"urine_pus_cells",aliases:["pus cells","pus cells/hpf","wbc urine","urine wbc","urine pus cells","white cells urine","leukocytes urine"],category:"Urine",unit:"/hpf",
+   b:{min:0,max:5},criticalHigh:50,
+   edu:"More than 5 pus cells/hpf = urinary tract infection (UTI). Very common in Indian women. Needs antibiotic treatment after urine culture confirms the bacteria.",
+   whatMeans:"White blood cells in urine — their presence means your urinary tract (bladder or kidneys) is fighting an infection."},
+
+  {id:"urine_rbc",aliases:["rbc urine","urine rbc","red cells urine","red blood cells urine","rbc/hpf urine","haematuria","hematuria"],category:"Urine",unit:"/hpf",
+   b:{min:0,max:2},criticalHigh:25,
+   edu:"Red blood cells in urine = blood in urine (haematuria). Causes: UTI, kidney stones, kidney disease, or rarely cancer. Always needs investigation even in small amounts.",
+   whatMeans:"Red blood cells in urine — means there is bleeding somewhere in the urinary tract, which always requires investigation."},
+
+  /* ── Serology / Infectious Disease ── */
+  {id:"hbsag",aliases:["hbsag","hbs ag","hepatitis b surface antigen","hep b surface antigen","hepatitis b antigen","hbsag (hepatitis b)"],category:"Serology",unit:"",
+   edu:"HBsAg POSITIVE = you have Hepatitis B infection (active or carrier). This requires specialist care, is infectious to others, and may need antiviral treatment.",
+   whatMeans:"A marker for Hepatitis B virus in your blood. Positive means you have a Hepatitis B infection — this is important and needs follow-up."},
+
+  {id:"anti_hcv",aliases:["anti hcv","anti-hcv","hepatitis c antibody","hcv antibody","hcv ab","anti hcv antibody"],category:"Serology",unit:"",
+   edu:"Anti-HCV POSITIVE = exposure to Hepatitis C at some point. A confirmatory PCR test is needed to check if the infection is still active. Modern treatments can cure Hepatitis C in 8-12 weeks.",
+   whatMeans:"An antibody against Hepatitis C virus. Positive = past or current Hepatitis C infection — needs confirmation with PCR test."},
+
+  {id:"hiv",aliases:["hiv","hiv 1/2","hiv antibody","anti hiv","hiv test","hiv ag/ab","hiv combo"],category:"Serology",unit:"",
+   edu:"HIV REACTIVE = needs urgent confirmatory testing (Western Blot or NAAT). Do not panic — a reactive ELISA screening test is not a confirmed diagnosis. Always requires repeat and specialist consultation.",
+   whatMeans:"A screening test for HIV. Reactive/positive on screening requires confirmatory testing before a diagnosis is made."},
+
+  {id:"dengue_ns1",aliases:["dengue ns1","ns1 antigen","dengue ns1 antigen","dengue antigen","ns1 ag","dengue ns1 ag","ns-1 antigen"],category:"Serology",unit:"",
+   edu:"Dengue NS1 POSITIVE = active dengue fever in early phase (day 1-5). Monitor platelet count daily — severe dengue can cause dangerous platelet drop. Stay hydrated. Avoid ibuprofen/aspirin — use only paracetamol.",
+   whatMeans:"A dengue virus protein that appears in blood in the first days of infection. Positive = you have active dengue fever right now."},
+
+  {id:"dengue_igg_igm",aliases:["dengue igg","dengue igm","dengue antibody","dengue serology","dengue igg/igm","anti dengue"],category:"Serology",unit:"",
+   edu:"Dengue IgM POSITIVE = recent dengue infection (within days-3 months). IgG positive alone = past infection with immunity. Both positive = secondary dengue infection which can be more severe.",
+   whatMeans:"Antibodies produced against dengue virus. IgM = recent infection. IgG = past infection or immunity from previous episode."},
+
+  {id:"malaria",aliases:["malaria","malaria antigen","malaria card test","malaria parasite","mp","malaria test","malaria rapid test","pf/pv antigen","rdt malaria"],category:"Serology",unit:"",
+   edu:"Malaria POSITIVE requires immediate treatment. Plasmodium falciparum (PF) is the more dangerous species and requires urgent treatment. Do not delay — untreated falciparum malaria can be fatal.",
+   whatMeans:"A test for malaria parasites in your blood. Positive means you have malaria and need immediate treatment."},
+
+  {id:"widal",aliases:["widal","widal test","widal reaction","typhoid test","salmonella typhi","s typhi o","s typhi h"],category:"Serology",unit:"",
+   edu:"Widal test detects typhoid fever (Salmonella typhi). Titre of 1:80 or higher is considered significant in India. The test has limitations — it can be falsely positive. A positive result with fever needs antibiotic treatment.",
+   whatMeans:"A blood test for typhoid fever. High titres combined with fever suggest typhoid infection, though the test is not perfectly accurate."},
+
+  {id:"creatinine_clearance",aliases:["creatinine clearance","24hr creatinine clearance","24 hour creatinine clearance","ccl","creatinine clearance (24hr)"],category:"KFT",unit:"mL/min",
+   b:{child:{min:70,max:140},teen:{min:80,max:160},adult:{min:80,max:125},elderly:{min:50,max:110}},
+   edu:"Creatinine clearance directly measures how much blood the kidneys filter per minute. More accurate than eGFR as it uses actual urine collection.",
+   whatMeans:"A direct kidney function test from 24-hour urine collection — how many mL of blood your kidneys clean per minute."},
+
+  {id:"uric_acid_urine",aliases:["urine uric acid","24hr uric acid","uric acid urine","urinary uric acid"],category:"KFT",unit:"mg/day",
+   b:{min:250,max:750},
+   edu:"High urine uric acid = risk of uric acid kidney stones. Low = gout (body not excreting enough uric acid). Measured in 24-hour urine collection.",
+   whatMeans:"How much uric acid your kidneys are filtering out per day — helps explain gout and kidney stones."},
+];
+
+/* ══════════════════════════════════════════
+   LOOKUP HELPERS
+   ══════════════════════════════════════════ */
+function normName(raw){
+  return String(raw||'').toLowerCase().trim()
+    .replace(/\s+/g,' ')
+    .replace(/[(){}#%]/g,'')        // strip %, () {} # — HbA1c% → hba1c
+    .replace(/\.\s+/g,'.')
+    .replace(/\s*\/\s*/g,'/')
+    .replace(/\s*-\s*/g,'-')
+    .replace(/\.\s*$/,'')
+    .trim();
+}
+function resolveParam(rawName){
+  if(!rawName) return null;
+  const n = normName(rawName);
+  for(const p of PARAM_DB){
+    if(p.aliases.includes(n)) return p;
+    if(p.exactOnly && p.exactOnly.includes(n)) return p;
+  }
+  for(const p of PARAM_DB){
+    const safe = p.aliases.filter(a=>a.length>=6);
+    if(safe.some(a=>n.includes(a)||a.includes(n))) return p;
+  }
+  return null;
+}
+
+/* Age group classifier (WHO age categories) */
+function ageGroup(age){
+  if(age===null||age===undefined||isNaN(age)) return 'adult';
+  if(age<=12)  return 'child';
+  if(age<=17)  return 'teen';
+  if(age<=59)  return 'adult';
+  return 'elderly';
+}
+
+/* Get range — gender & age aware.
+   Priority: gender+age > gender+default > both+age > both+default */
+function getRange(p, gender, age){
+  const ag = ageGroup(age);
+  // Try gender-specific with age subkey
+  const gKey = (gender==='Female')?'f':(gender==='Male'?'m':null);
+  if(gKey && p[gKey]){
+    const g=p[gKey];
+    if(g[ag]) return g[ag];          // gender + age group
+    if(g.min!==undefined) return g;  // gender flat range
+  }
+  // Try both/neutral with age subkey
+  if(p.b){
+    const b=p.b;
+    if(b[ag]) return b[ag];          // neutral + age group
+    if(b.min!==undefined) return b;  // neutral flat range
+  }
+  // Fallback: try other gender
+  const altKey = gKey==='m'?'f':'m';
+  if(p[altKey]){
+    const alt=p[altKey];
+    if(alt[ag]) return alt[ag];
+    if(alt.min!==undefined) return alt;
+  }
+  return null;
+}
+
+function parseVal(raw){
+  const s=String(raw||'').trim();
+  let q='',num=NaN;
+  if(s.startsWith('<')){q='<';num=parseFloat(s.slice(1));}
+  else if(s.startsWith('>')){q='>';num=parseFloat(s.slice(1));}
+  else{num=parseFloat(s.replace(/[^0-9.-]/g,''));}
+  return{num,q};
+}
+
+function checkFlag(name, value, gender, age){
+  const p=resolveParam(name); if(!p) return null;
+  const{num,q}=parseVal(value); if(isNaN(num)) return null;
+  const range=getRange(p, gender, age); if(!range) return null;
+  let v=num;
+  if(q==='<') v=num-0.0001;
+  if(q==='>') v=num+0.0001;
+  if(p.criticalLow!==undefined  && v<p.criticalLow)  return 'CRITICAL';
+  if(p.criticalHigh!==undefined && v>p.criticalHigh) return 'CRITICAL';
+  if(v<range.min) return 'LOW';
+  if(v>range.max) return 'HIGH';
+  return 'NORMAL';
+}
+
+/* ══════════════════════════════════════════
+   JSON PARSER — with truncation recovery
+   ══════════════════════════════════════════ */
+function parseJSON(raw){
+  // Strip markdown code fences if present
+  let c = raw.replace(/```[a-zA-Z]*\n?/gi,'').trim();
+
+  // Direct parse
+  try{ return JSON.parse(c); }catch{}
+
+  // Extract largest JSON object
+  const m = c.match(/\{[\s\S]*\}/);
+  if(m){ try{ return JSON.parse(m[0]); }catch{} }
+
+  // Recovery: attempt to fix truncated JSON by closing open structures
+  // Find last complete key-value pair, close arrays and object
+  try{
+    let attempt = c;
+    // Count unclosed braces/brackets
+    let braces=0, brackets=0, inStr=false, escape=false;
+    for(const ch of attempt){
+      if(escape){escape=false;continue;}
+      if(ch==='\\'&&inStr){escape=true;continue;}
+      if(ch==='"'&&!escape){inStr=!inStr;continue;}
+      if(inStr) continue;
+      if(ch==='{') braces++;
+      if(ch==='}') braces--;
+      if(ch==='[') brackets++;
+      if(ch===']') brackets--;
+    }
+    // Append closing chars to fix truncation
+    if(brackets>0) attempt += ']'.repeat(brackets);
+    if(braces>0)   attempt += '}'.repeat(braces);
+    const r2 = attempt.match(/\{[\s\S]*\}/);
+    if(r2) return JSON.parse(r2[0]);
+  }catch{}
+
+  throw new Error('AI response was incomplete or unreadable. Please try again — this can happen with very large reports.');
+}
+
+/* ══════════════════════════════════════════
+   FILE HANDLING
+   ══════════════════════════════════════════ */
+function handleFile(file){
+  if(!file) return;
+  if(file.size>MAX_BYTES){showErr(`File too large (${(file.size/1024/1024).toFixed(1)} MB). Max 10 MB.`);return;}
+  const ok=/\.(pdf|jpg|jpeg|png|webp)$/i.test(file.name)||
+    ['application/pdf','image/jpeg','image/png','image/webp'].includes(file.type);
+  if(!ok){showErr('Unsupported file type. Please upload PDF, JPG, PNG, or WEBP.');return;}
+  currentFile=file;
+  document.getElementById('fname').textContent=file.name;
+  document.getElementById('fsize').textContent=(file.size/1024).toFixed(1)+' KB';
+  document.getElementById('file-chip').classList.add('show');
+  document.getElementById('analyze-btn').disabled=false;
+  hideErr();
+}
+const dz=document.getElementById('drop-zone');
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('dragover');});
+dz.addEventListener('dragleave',()=>dz.classList.remove('dragover'));
+dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('dragover');handleFile(e.dataTransfer.files[0]);});
+
+async function extractPDF(file){
+  return new Promise((res,rej)=>{
+    const r=new FileReader();
+    r.onerror=()=>rej(new Error('Cannot read PDF. Is it password-protected?'));
+    r.onload=async e=>{
+      try{
+        pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        const pdf=await pdfjsLib.getDocument({data:e.target.result}).promise;
+
+        /* ── Text extraction: up to 10 pages, threshold 200 chars ── */
+        let text='';
+        for(let i=1;i<=Math.min(pdf.numPages,10);i++){
+          const pg=await pdf.getPage(i);
+          const tc=await pg.getTextContent();
+          text+=tc.items.map(x=>x.str).join(' ')+'\n';
+        }
+        /* 200 char threshold prevents falsely treating semi-scanned PDFs as text */
+        if(text.trim().length>200){res({type:'text',data:text});return;}
+
+        /* ── Image fallback: up to 4 pages, scale 1.5 to control size ── */
+        const pages=Math.min(pdf.numPages,4);
+        const canvases=[];let totalH=0,maxW=0;
+        for(let i=1;i<=pages;i++){
+          const pg=await pdf.getPage(i);
+          /* 1.5 scale = ~1275×1800px per A4 page — readable but not oversized */
+          const vp=pg.getViewport({scale:1.5});
+          const c=document.createElement('canvas');c.width=vp.width;c.height=vp.height;
+          await pg.render({canvasContext:c.getContext('2d'),viewport:vp}).promise;
+          canvases.push(c);totalH+=vp.height;maxW=Math.max(maxW,vp.width);
+        }
+        const m2=document.createElement('canvas');m2.width=maxW;m2.height=totalH;
+        const ctx=m2.getContext('2d');let y=0;
+        for(const c of canvases){ctx.drawImage(c,0,y);y+=c.height;}
+        /* JPEG quality 0.88 — better text legibility than 0.85 for small fonts */
+        res({type:'image',data:m2.toDataURL('image/jpeg',0.88).split(',')[1],mimeType:'image/jpeg'});
+      }catch(err){rej(new Error('PDF failed: '+err.message));}
+    };
+    r.readAsArrayBuffer(file);
+  });
+}
+async function extractImage(file){
+  return new Promise((res,rej)=>{
+    const r=new FileReader();
+    r.onerror=()=>rej(new Error('Cannot read image.'));
+    r.onload=e=>res({type:'image',data:e.target.result.split(',')[1],mimeType:file.type||'image/jpeg'});
+    r.readAsDataURL(file);
+  });
+}
+
+/* ══════════════════════════════════════════
+   AI PROMPTS — one per report type
+   ══════════════════════════════════════════ */
+function buildPrompt(type){
+  const base=`Return ONLY valid JSON, no markdown, no text outside the JSON object.`;
+
+  if(type==='blood'){
+    return `You are an expert Indian hospital medical report analyzer and haematologist.
+${base}
+
+CRITICAL COMPLETENESS RULES — patient safety depends on this:
+1. Extract ABSOLUTELY EVERY test result visible in the report — CBC, DLC, LFT, KFT, Lipids, Thyroid, Vitamins, Iron Studies, Electrolytes, Inflammatory markers, Diabetes markers, Cardiac markers, Hormones, Cultures, Urine — ALL of them. Missing a result is a medical error.
+2. Do NOT stop early. Do NOT summarise groups. Every individual parameter = one entry in findings[].
+3. Use the EXACT parameter name as printed in the report for "name".
+4. For "flag": if the report prints H, L, *, ↑, ↓, HIGH, LOW, ABNORMAL next to a value — use that. If no flag is printed, compare to the referenceRange printed and set flag yourself.
+5. patientGender must be exactly "Male", "Female", or "Unknown".
+6. For summary: name EVERY abnormal test. 4-6 plain sentences.
+7. For nextSteps: specific actions, named doctor type, named likely treatment, named symptoms to watch.
+8. For conditions: specific clinical conditions (e.g. "Iron Deficiency Anemia", "Neutrophilia suggesting bacterial infection").
+
+Return this exact JSON structure:
+{
+  "reportKind": "blood",
+  "patientName": "string or Unknown",
+  "patientAge": number or null,
+  "patientGender": "Male or Female or Unknown",
+  "reportDate": "string or Unknown",
+  "reportType": "e.g. CBC with Differential, Complete Blood Count, LFT, KFT, Lipid Profile, Thyroid Profile, etc.",
+  "labName": "name of diagnostic lab if visible or Unknown",
+  "findings": [
+    {
+      "name": "exact parameter name as printed",
+      "value": "exact value as printed",
+      "unit": "unit as printed",
+      "referenceRange": "reference range as printed in report",
+      "flag": "HIGH or LOW or NORMAL or CRITICAL or ABNORMAL",
+      "category": "CBC or DLC or Absolute Counts or LFT or KFT or Lipids or Diabetes or Thyroid or Vitamins or Iron Studies or Inflammation or Electrolytes or Cardiac or Hormones or Urine or Other",
+      "simpleExplanation": "1-2 plain sentences: what this test measures AND what this specific value means for this patient"
+    }
+  ],
+  "conditions": ["specific condition 1", "specific condition 2"],
+  "summary": "4-6 plain sentences naming every abnormal finding",
+  "urgency": "routine or follow-up or urgent or emergency",
+  "nextSteps": ["specific action 1", "specific action 2", "specific action 3"]
+}`;
+  }
+
+  if(type==='prescription'){
+    return `You are an expert Indian clinical pharmacist with 20 years of experience. You must extract EVERY SINGLE piece of information visible — missing any medicine is a patient safety error.
+${base}
+
+CRITICAL RULES — patient safety depends on accuracy:
+1. Extract EVERY medicine — tablets, capsules, syrups, injections, topical creams, eye drops, ear drops, inhalers, nasal sprays, sachets, patches, suppositories, vitamins, supplements. ALL of them.
+2. Do NOT skip any medicine even if you cannot identify it — use the name as written.
+3. Infer missing fields from your pharmacology knowledge (e.g. infer foodInstruction from drug class, infer genericName from brand name).
+4. INDIAN BRAND → GENERIC dictionary (use this):
+   Dolo=Paracetamol, Crocin=Paracetamol, Pyrigesic=Paracetamol, Febrex=Paracetamol,
+   Combiflam=Ibuprofen+Paracetamol, Brufen=Ibuprofen, Ibugesic=Ibuprofen,
+   Pan=Pantoprazole, Pantop=Pantoprazole, Pantocid=Pantoprazole, Nexpro=Esomeprazole, Nexium=Esomeprazole, Omez=Omeprazole, Razo=Rabeprazole,
+   Mox=Amoxicillin, Novamox=Amoxicillin, Augmentin=Amoxicillin+Clavulanate, Clavam=Amoxicillin+Clavulanate,
+   Azithral=Azithromycin, Zithromax=Azithromycin, Azee=Azithromycin,
+   Cifran=Ciprofloxacin, Ciplox=Ciprofloxacin, Oflox=Ofloxacin, Zanocin=Ofloxacin,
+   Metrogyl=Metronidazole, Flagyl=Metronidazole, Metro=Metronidazole,
+   Taxim=Cefotaxime, Monocef=Ceftriaxone, Zifi=Cefixime, Cepodem=Cefpodoxime, Suprax=Cefixime,
+   Clavam=Amoxicillin+Clavulanate, Klaricid=Clarithromycin, Klacid=Clarithromycin,
+   Glycomet=Metformin, Glucophage=Metformin, Obimet=Metformin, Gluformin=Metformin,
+   Januvia=Sitagliptin, Galvus=Vildagliptin, Trajenta=Linagliptin, Jardiance=Empagliflozin, Forxiga=Dapagliflozin,
+   Telma=Telmisartan, Telvas=Telmisartan, Telmikind=Telmisartan,
+   Amlodac=Amlodipine, Stamlo=Amlodipine, Amcard=Amlodipine, Amlopin=Amlodipine,
+   Aten=Atenolol, Tenolol=Atenolol, Metolar=Metoprolol, Betaloc=Metoprolol, Corbis=Bisoprolol,
+   Cardace=Ramipril, Ramipace=Ramipril, Enapril=Enalapril, Envas=Enalapril, Lisinace=Lisinopril,
+   Ecosprin=Aspirin, Aspirin=Aspirin, Disprin=Aspirin,
+   Atorva=Atorvastatin, Lipitor=Atorvastatin, Aztor=Atorvastatin, Storvas=Atorvastatin,
+   Rosave=Rosuvastatin, Crestor=Rosuvastatin,
+   Shelcal=Calcium+Cholecalciferol, Calcitas=Calcium+Cholecalciferol, Calcirol=Cholecalciferol,
+   Becosules=B-Complex+Vitamin C, Polybion=B-Complex, Neurobion=B1+B6+B12, Nervijen=B1+B6+B12,
+   Limcee=Vitamin C, Celin=Vitamin C,
+   Thyronorm=Levothyroxine, Eltroxin=Levothyroxine, Thyrox=Levothyroxine,
+   Folvite=Folic Acid, Dexorange=Iron+Folic Acid+B12,
+   Preganews=Folic Acid, Pregnacare=Multivitamin+Folic Acid,
+   Allegra=Fexofenadine, Cetcip=Cetirizine, Okacet=Cetirizine, L-Cin=Levocetirizine, Levocet=Levocetirizine,
+   Montair=Montelukast, Singulair=Montelukast, Asthalin=Salbutamol, Duolin=Levosalbutamol+Ipratropium,
+   Omnacortil=Prednisolone, Wysolone=Prednisolone, Decdan=Dexamethasone,
+   Sorbiline=Sorbitol syrup, Duphalac=Lactulose, Cremaffin=Liquid Paraffin+Milk of Magnesia,
+   Zofer=Ondansetron, Emeset=Ondansetron, Vomistop=Domperidone, Domstal=Domperidone,
+   Ultracet=Tramadol+Paracetamol, Volini=Diclofenac gel, Dynapar=Diclofenac, Voveran=Diclofenac,
+   Calpol=Paracetamol, Fepanil=Paracetamol,
+   Wikoryl=Paracetamol+Phenylephrine+Chlorpheniramine, Sinarest=Paracetamol+Phenylephrine+Chlorpheniramine,
+   Otrivin=Xylometazoline nasal spray, Nasivion=Oxymetazoline nasal spray,
+   Looz=Lactulose, Cremaffin Plus=Liquid Paraffin+Sodium Picosulfate,
+   Ceftas=Cefixime+Azithromycin, Taxim-O=Cefixime
+
+5. dosageForm options: Tablet|Capsule|Syrup|Injection|Cream|Ointment|Gel|Eye Drops|Ear Drops|Inhaler|Nasal Spray|Drops|Sachet|Patch|Suppository|Lotion|Powder|Suspension
+6. route options: Oral|Topical|Inhalation|Injection|Ophthalmic|Otic|Nasal|Rectal|Transdermal
+7. pregnancySafety: Safe|Caution|Avoid|Unknown
+8. Extract ALL vitals written on prescription slip (BP, weight, sugar, pulse, SpO2, temperature)
+9. Extract ALL lab tests ordered by doctor
+10. Extract doctor registration number (MCI/state council reg. no.) if visible
+
+Return this exact JSON:
+{
+  "reportKind": "prescription",
+  "patientName": "string or Unknown",
+  "patientAge": number or null,
+  "patientGender": "Male or Female or Unknown",
+  "patientWeight": "string or null",
+  "reportDate": "string or Unknown",
+  "doctorName": "string or Unknown",
+  "doctorQualification": "e.g. MBBS MD or Unknown",
+  "doctorSpecialty": "string or Unknown",
+  "doctorRegNo": "MCI/state registration number or Unknown",
+  "hospitalName": "string or Unknown",
+  "hospitalAddress": "string or Unknown",
+  "contactNo": "phone if present or Unknown",
+  "diagnosis": "specific primary diagnosis or Unknown",
+  "secondaryDiagnosis": ["any additional conditions mentioned"],
+  "allergies": "any allergies noted or Unknown",
+  "vitalsOnSlip": {"bp": null, "weight": null, "sugar": null, "pulse": null, "temp": null, "spo2": null, "other": null},
+  "labTestsOrdered": ["test1", "test2"],
+  "medicines": [
+    {
+      "name": "brand name exactly as written",
+      "genericName": "INN active ingredient(s)",
+      "drugClass": "therapeutic class e.g. NSAID, PPI, Antibiotic, ACE Inhibitor",
+      "dosageForm": "Tablet|Capsule|Syrup|Injection|Cream|Ointment|Gel|Eye Drops|Ear Drops|Inhaler|Nasal Spray|Drops|Sachet|Patch|Suppository|Lotion|Powder|Suspension",
+      "route": "Oral|Topical|Inhalation|Injection|Ophthalmic|Otic|Nasal|Rectal|Transdermal",
+      "dose": "exact dose e.g. 500mg, 10mg, 5ml",
+      "frequency": "e.g. Once daily, Twice daily, Three times a day, Every 8 hours, At bedtime, SOS",
+      "timing": ["Morning", "Afternoon", "Evening", "Night"],
+      "foodInstruction": "Before food|After food|With food|Empty stomach|Anytime",
+      "duration": "e.g. 5 days, 1 month, Ongoing, Until review",
+      "totalQuantity": "calculate from dose x frequency x duration if not stated",
+      "purpose": "ONE plain sentence why patient takes this",
+      "mechanismSimple": "ONE plain sentence how this medicine works",
+      "importantInstructions": "critical do's and don'ts",
+      "commonSideEffects": "2-3 most likely side effects",
+      "warningFlags": [],
+      "substitutable": true,
+      "storageInstructions": "storage requirement",
+      "pregnancySafety": "Safe|Caution|Avoid|Unknown"
+    }
+  ],
+  "drugInteractions": ["notable interactions between medicines in this prescription"],
+  "generalInstructions": "any overall diet/activity/lifestyle instructions",
+  "followUpDate": "string or Unknown",
+  "followUpInstructions": "what to watch for before follow-up",
+  "summary": "3-5 plain sentences: what condition is being treated and what this prescription does",
+  "urgency": "routine|follow-up|urgent|emergency",
+  "nextSteps": ["practical patient action 1", "action 2", "action 3"]
+}`;
+  }
+
+  if(type==='radiology'){
+    return `You are a senior radiologist AND a skilled medical communicator. You analyze imaging reports and translate every finding into language a patient with no medical background can fully understand.
+${base}
+
+This report may be any imaging type: X-Ray, MRI, CT Scan, Ultrasound (abdomen, pelvis, thyroid, cardiac), Echocardiogram (ECHO/2D Echo), ECG/EKG, PET Scan, Mammography, DEXA Scan, Doppler, or other.
+
+CRITICAL RULES:
+1. Extract EVERY finding mentioned in the report — do not skip normal findings. Patients want to know what is normal too.
+2. Translate ALL medical jargon into everyday plain English. A 15-year-old should be able to understand every word.
+   - "heterogeneous echogenicity" → "the texture of this organ looks uneven on the scan"
+   - "mild cardiomegaly" → "the heart is slightly larger than normal"
+   - "posterior disc herniation" → "a spinal disc is bulging backwards and may press on nerves"
+   - "bilateral pleural effusion" → "fluid has collected around both lungs"
+   - "left ventricular ejection fraction 45%" → "the heart is pumping out 45% of blood with each beat — normal is 55-70%"
+   - "Grade 1 fatty liver" → "mild fat deposits in the liver, an early and reversible stage"
+   - "renal cortical cyst" → "a harmless fluid-filled sac on the outer layer of the kidney"
+   - "cervical spondylosis" → "age-related wear and tear of the neck vertebrae and discs"
+3. For ECG/EKG reports specifically: explain rhythm, rate, axis, any ST changes, bundle blocks, arrhythmias in plain language.
+4. For ECHO/2D Echo: explain EF%, valve function, wall motion, chamber sizes in plain language.
+5. For Ultrasound: explain organ size, echogenicity, lesions, cysts, calculi in plain language.
+6. For MRI/CT: explain each structure examined and what was found.
+7. modalityType must be one of: "X-Ray"|"MRI"|"CT Scan"|"Ultrasound"|"Echocardiogram"|"ECG"|"PET Scan"|"Mammography"|"DEXA Scan"|"Doppler"|"Other"
+8. severity must be exactly: "Normal"|"Mild"|"Moderate"|"Severe"|"Incidental"|"Critical"
+   - "Incidental" = found by accident, not the reason for the scan, usually not dangerous
+   - "Critical" = needs immediate attention
+9. For impressionSummary: write what the OVERALL picture means — is the patient generally OK? What is the key takeaway? Use only plain language.
+10. For nextSteps: be specific — name the exact specialist (e.g. "cardiologist", "neurosurgeon", "gastroenterologist"), name the likely next test (e.g. "cardiac stress test", "colonoscopy"), and say what symptoms to watch for.
+11. whatItMeans: ONE sentence, very simple — what does this specific finding mean for this patient's life/health?
+12. analogy: a simple real-world analogy to help a non-medical person picture what this finding looks like (e.g. "Think of it like a small water balloon sitting on the kidney surface — harmless and common")
+
+{
+  "reportKind": "radiology",
+  "patientName":"string or Unknown",
+  "patientAge":number or null,
+  "patientGender":"Male or Female or Unknown",
+  "reportDate":"string or Unknown",
+  "modalityType":"X-Ray|MRI|CT Scan|Ultrasound|Echocardiogram|ECG|PET Scan|Mammography|DEXA Scan|Doppler|Other",
+  "bodyPart":"e.g. Chest, Abdomen, Brain, Lumbar Spine, Knee, Whole Abdomen",
+  "referringDoctor":"string or Unknown",
+  "radiologistName":"string or Unknown",
+  "clinicalHistory":"any clinical history or reason for scan mentioned in report, or Unknown",
+  "impressionSummary":"3-5 plain English sentences summarising the overall result — what does this scan show overall? Is the patient OK?",
+  "findings":[{
+    "organ":"exact anatomical structure e.g. Liver, Left Kidney, L4-L5 Disc, Mitral Valve",
+    "finding":"medical name of the finding exactly as in report",
+    "severity":"Normal|Mild|Moderate|Severe|Incidental|Critical",
+    "isNormal":true,
+    "plainTitle":"short plain English name e.g. 'Slightly enlarged heart', 'Kidney cyst', 'Bulging disc', 'Normal liver'",
+    "plainDescription":"2-3 plain sentences — what is this finding? What does it look like on the scan? What does it mean for the patient? ZERO medical jargon.",
+    "whatItMeans":"ONE sentence: what does this mean for the patient's daily life or health going forward?",
+    "analogy":"one simple real-world analogy to help visualise this finding (only for non-normal findings)",
+    "clinicalSignificance":"why this matters clinically — what conditions or risks does it indicate? Keep it plain.",
+    "actionRequired":"what the patient should do about this specific finding: 'No action needed', 'Mention to doctor at next visit', 'See specialist soon', 'Urgent follow-up required', 'Emergency — seek immediate care'"
+  }],
+  "bodySystemStatus":[{"system":"e.g. Heart, Liver, Both Kidneys, Spine","status":"normal|abnormal|borderline","note":"one plain sentence"}],
+  "conditions":["list of identified medical conditions in plain language e.g. 'Grade 1 Fatty Liver', 'Mild Cervical Spondylosis'"],
+  "keyMeasurements":{"ejectionFraction":"if ECHO — e.g. 58%","heartRate":"if ECG — e.g. 76 bpm","rhythm":"if ECG — e.g. Normal Sinus Rhythm","bmd":"if DEXA — T-score","other":"any other key numeric measurements"},
+  "urgency":"routine|follow-up|urgent|emergency",
+  "nextSteps":["specific, named action 1","specific, named action 2","specific, named action 3"],
+  "summary":"3-5 plain sentences — the overall verdict in language any patient can understand"
+}`;
+  }
+  return buildPrompt('blood');
+}
+
+/* ══════════════════════════════════════════
+   GROQ API CALL
+   — system prompt always sent (even for vision)
+   — max_tokens 8192 prevents truncation
+   — response_format json_object forces valid JSON
+   — retry if findings look suspiciously few
+   ══════════════════════════════════════════ */
+async function callGroq(content, reportType, attempt=1){
+  const prompt = buildPrompt(reportType);
+  const model  = content.type==='image' ? MODEL_VISION : MODEL_TEXT;
+
+  /* Always include system prompt — vision models on Groq support system role */
+  const messages = content.type==='image'
+    ? [
+        {role:'system', content: prompt},
+        {role:'user', content:[
+          {type:'image_url', image_url:{url:`data:${content.mimeType};base64,${content.data}`}},
+          {type:'text', text:'Analyze this medical report image completely and thoroughly. Extract EVERY test, EVERY drug, EVERY finding — miss nothing. Return ONLY the JSON object.'}
+        ]}
+      ]
+    : [
+        {role:'system', content: prompt},
+        {role:'user',   content: 'Analyze this medical report completely. Extract EVERY single test result and drug — do not skip any. Return ONLY the JSON:\n\n'+content.data}
+      ];
+
+  let res;
+  try{
+    res=await fetch(GROQ_URL,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+GROQ_API_KEY},
+      body:JSON.stringify({
+        model,
+        messages,
+        temperature: 0.05,          // lower = more deterministic, less hallucination
+        max_tokens:  MAX_TOKENS,    // 8192 — prevents truncation
+        response_format: content.type==='text' ? {type:'json_object'} : undefined
+        // Note: response_format json_object only for text model; vision model doesn't support it on Groq
+      })
+    });
+  }catch(e){throw new Error('Network error — check your internet connection.');}
+
+  if(!res.ok){
+    const b=await res.json().catch(()=>({}));
+    const msg=b.error?.message||('API error '+res.status);
+    if(attempt<3&&(res.status>=500||res.status===429)){
+      const wait=attempt===1?3000:8000;
+      setMsg(`Server busy — retrying in ${wait/1000}s… (attempt ${attempt}/3)`);
+      await new Promise(r=>setTimeout(r,wait));
+      return callGroq(content,reportType,attempt+1);
+    }
+    if(res.status===401) throw new Error('Invalid API key. Get a free key at console.groq.com → API Keys.');
+    if(res.status===429) throw new Error('Rate limit hit. Wait 30 seconds then try again.');
+    throw new Error(msg);
+  }
+
+  const data=await res.json();
+  const raw=data.choices?.[0]?.message?.content||'';
+  if(!raw.trim()) throw new Error('AI returned empty response. Please try again.');
+
+  const result = parseJSON(raw);
+
+  /* ── Completeness check: if findings look truncated, retry once ── */
+  const minExpected = MIN_FINDINGS[reportType] || 1;
+  const findingsCount = (result.findings||result.medicines||[]).length;
+  if(findingsCount < minExpected && attempt < 3){
+    setMsg(`Only ${findingsCount} items found — re-analyzing for completeness…`);
+    await new Promise(r=>setTimeout(r,2000));
+    return callGroq(content, reportType, attempt+1);
+  }
+
+  return result;
+}
+
+/* ══════════════════════════════════════════
+   MAIN FLOW
+   ══════════════════════════════════════════ */
+async function startAnalysis(){
+  if(!currentFile) return;
+  if(!GROQ_API_KEY||!GROQ_API_KEY.trim()){
+    showErr('Please paste your free Groq API key in the GROQ_API_KEY variable. Get one at console.groq.com');
+    return;
+  }
+  document.getElementById('analyze-btn').disabled=true;
+  showScreen('processing');
+  setProgress(10);markStep('step1');setMsg('Reading file…');
+  try{
+    const content=currentFile.type==='application/pdf'
+      ?await extractPDF(currentFile)
+      :await extractImage(currentFile);
+    setProgress(35);markStep('step2');setMsg('Extracting data with AI…');
+    const result=await callGroq(content, currentType);
+    setProgress(65);markStep('step3');setMsg('Validating and enriching results…');
+    /* Blood-specific enrichment */
+    if((currentType==='blood'||result.reportKind==='blood') && Array.isArray(result.findings)){
+      const age = result.patientAge ? Number(result.patientAge) : null;
+      result.findings=result.findings.map(f=>{
+        const hc=checkFlag(f.name,f.value,result.patientGender,age);
+        if(hc) f.flag=hc;
+        const p=resolveParam(f.name);
+        if(p){
+          if(!f.category||f.category==='Other') f.category=p.category;
+          if(p.edu) f.edu=p.edu;
+          if(p.whatMeans) f.whatMeans=p.whatMeans;
+        }
+        if(!f.category) f.category='Other';
+        return f;
+      });
+    }
+    if(!Array.isArray(result.conditions))  result.conditions=[];
+    if(!Array.isArray(result.nextSteps))   result.nextSteps=[];
+    setProgress(100);markStep('step4');
+    currentResult=result;
+    setTimeout(()=>{buildResults(result);showScreen('results');},400);
+  }catch(err){
+    document.getElementById('analyze-btn').disabled=false;
+    showScreen('upload');
+    showErr(String(err.message||err).replace(/</g,'&lt;').replace(/>/g,'&gt;'));
+  }
+}
+
+/* ══════════════════════════════════════════
+   URGENCY BANNER
+   ══════════════════════════════════════════ */
+function buildUrgencyBanner(urgency){
+  const rawU=String(urgency||'routine').toLowerCase().replace(/[-\s]+/g,'');
+  const u={routine:'routine',followup:'followup',urgent:'urgent',emergency:'emergency'}[rawU]||'routine';
+  const cfg={
+    routine:  {icon:'🟢',title:'All looks generally manageable',detail:'No immediate action needed. Discuss these results at your next regular doctor visit.'},
+    followup: {icon:'🟡',title:'Some findings need your doctor\'s attention',detail:'Please book a follow-up appointment within the next week to review these results with your doctor.'},
+    urgent:   {icon:'🔴',title:'Important — please contact your doctor today',detail:'Some findings in this report require prompt evaluation. Call or visit your doctor today — do not wait.'},
+    emergency:{icon:'🚨',title:'Seek immediate medical attention',detail:'Critical values detected. Go to a hospital emergency room NOW. Do not delay for any reason.'}
+  };
+  const c=cfg[u];
+  return`<div class="urgency ${u}">
+    <div class="urgency-icon">${c.icon}</div>
+    <div><div class="urgency-title">${c.title}</div><div class="urgency-detail">${c.detail}</div></div>
+  </div>`;
+}
+
+/* ══════════════════════════════════════════
+   BUILD RESULTS — DISPATCHER
+   ══════════════════════════════════════════ */
+function buildResults(r){
+  activateTab('summary');
+  chartObjs.forEach(c=>{try{c.destroy();}catch{}});chartObjs=[];
+
+  const kind=r.reportKind||currentType||'blood';
+  const typeLabels={blood:'🩸 Blood Test',radiology:'🫁 Radiology Report',prescription:'💊 Prescription'};
+  document.getElementById('r-title').textContent=typeLabels[kind]||'Medical Report';
+  const meta=[];
+  if(r.patientName&&r.patientName!=='Unknown') meta.push(r.patientName);
+  if(r.patientAge)  meta.push('Age '+r.patientAge);
+  if(r.patientGender&&r.patientGender!=='Unknown') meta.push(r.patientGender);
+  if(r.reportDate&&r.reportDate!=='Unknown') meta.push(r.reportDate);
+  document.getElementById('r-meta').textContent=meta.join(' · ');
+  document.getElementById('r-urgency').innerHTML=buildUrgencyBanner(r.urgency);
+
+  /* Show/hide coverage bar (blood only) */
+  const covBar=document.getElementById('r-coverage');
+  if(kind==='blood'&&Array.isArray(r.findings)){
+    covBar.style.display='flex';
+    const matched=r.findings.filter(f=>resolveParam(f.name)).length;
+    const total=r.findings.length;
+    const pct=total?Math.round(matched/total*100):0;
+    document.getElementById('cov-fill').style.width=pct+'%';
+    document.getElementById('cov-stat').textContent=`${matched} of ${total} cross-checked`;
+  } else {covBar.style.display='none';}
+
+  /* Show/hide tabs based on type */
+  const trendsTab=document.querySelector('[data-tab="trends"]');
+  trendsTab.style.display=(kind==='blood')?'':'none';
+
+  if(kind==='blood')        buildBloodResults(r);
+  else if(kind==='prescription') buildPrescriptionResults(r);
+  else if(kind==='radiology')    buildRadiologyResults(r);
+  else buildBloodResults(r);
+
+  buildEducationTab(r, kind);
+}
+
+/* ══════════════════════════════════════════
+   BLOOD RESULTS
+   ══════════════════════════════════════════ */
+function buildBloodResults(r){
+  const findings=r.findings||[];
+  const abnCount=findings.filter(f=>f.flag&&f.flag!=='NORMAL').length;
+  const nrmCount=findings.filter(f=>f.flag==='NORMAL').length;
+
+  /* Summary tab */
+  document.getElementById('r-summary-content').innerHTML=`
+  <div class="summary-grid">
+    <div>
+      <div class="card">
+        <div class="card-title">Plain Language Summary</div>
+        <div style="font-size:15px;line-height:1.85;color:var(--ink2);">${esc(r.summary||'No summary available.')}</div>
+      </div>
+      <div class="card" style="background:var(--amber-pale);border-color:var(--amber-border);">
+        <div class="card-title" style="color:var(--amber);">⚡ What You Should Do Next</div>
+        ${(r.nextSteps||[]).map((s,i)=>`<div class="step-item"><span class="step-num">${i+1}</span><span class="step-text">${esc(s)}</span></div>`).join('')}
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <div class="card-title">At a Glance</div>
+        <div class="stats-row">
+          <div class="stat-pill abn"><div class="stat-num">${abnCount}</div><div class="stat-label">Abnormal</div></div>
+          <div class="stat-pill nrm"><div class="stat-num">${nrmCount}</div><div class="stat-label">Normal</div></div>
+          <div class="stat-pill tot"><div class="stat-num">${findings.length}</div><div class="stat-label">Total</div></div>
+        </div>
+        ${r.conditions&&r.conditions.length?`<div class="card-title" style="margin-top:10px;">Identified Conditions</div>${r.conditions.map(c=>`<span class="cond-tag">◆ ${esc(c)}</span>`).join('')}`:''}
+      </div>
+      <div class="card" style="background:var(--surface2);">
+        <div class="card-title">About These Ranges</div>
+        <p style="font-size:12px;color:var(--ink3);line-height:1.7;">Reference ranges are stratified by <strong>age</strong> (child 0–12, teen 13–17, adult 18–59, elderly 60+) and <strong>gender</strong>, sourced from: <strong>WHO</strong> (haemoglobin, anaemia), <strong>ICMR/AIIMS</strong> (Indian population norms), <strong>ADA</strong> (diabetes), <strong>ATA</strong> (thyroid), <strong>ACC/AHA</strong> (lipids), <strong>IDF</strong> (metabolic). ALP is intentionally higher in children (growing bones). TSH is wider in children and elderly. Always review with a doctor who knows your full history.</p>
+      </div>
+    </div>
+  </div>`;
+
+  /* Findings tab */
+  const cats=['All',...new Set(findings.map(f=>f.category||'Other'))];
+  const filterBar=`<div class="filter-bar">${cats.map((c,i)=>`<button class="filter-btn${i===0?' active':''}" onclick="filterFindings(this,'${esc(c)}')">${esc(c)}${c==='All'?` (${findings.length})`:` (${findings.filter(f=>(f.category||'Other')===c).length})`}</button>`).join('')}</div>`;
+  document.getElementById('r-findings-content').innerHTML=filterBar+
+    `<div class="findings-grid">${findings.map(f=>buildFindingCard(f)).join('')}</div>`;
+
+  /* Trends tab */
+  buildTrendsContent(findings);
+}
+
+function filterFindings(btn,cat){
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.fcard').forEach(fc=>{
+    fc.classList.toggle('hidden', cat!=='All' && fc.dataset.cat!==cat);
+  });
+}
+
+function buildFindingCard(f){
+  const flag=(f.flag||'NORMAL').toLowerCase();
+  const fc=['high','low','critical','abnormal'].includes(flag)?flag:'normal';
+  const labels={high:'↑ HIGH',low:'↓ LOW',critical:'⚠ CRITICAL',abnormal:'ABNORMAL',normal:'✓ NORMAL'};
+  const hasExtra=f.edu||f.whatMeans;
+  const eid=`edu_${Math.random().toString(36).slice(2,7)}`;
+
+  const nameHtml=f.whatMeans
+    ?`<div class="tooltip-wrap"><button class="tooltip-trigger" tabindex="0">${esc(f.name||'Unknown')}</button><div class="tooltip-box">${esc(f.whatMeans)}</div></div>`
+    :`<span>${esc(f.name||'Unknown')}</span>`;
+
+  /* Reference range — detect if age/gender were actually known */
+  const p = resolveParam(f.name);
+  const age = currentResult?.patientAge ? Number(currentResult.patientAge) : null;
+  const gender = currentResult?.patientGender;
+  const ageKnown = age !== null && !isNaN(age);
+  const genderKnown = gender && gender !== 'Unknown';
+  const whoRange = p ? getRange(p, gender, age) : null;
+  const whoRangeStr = whoRange ? `${whoRange.min}–${whoRange.max} ${p.unit||''}` : null;
+
+    /* Label the range source accurately per parameter category */
+    const rangeSource = p ? {
+      'CBC':'WHO/ICMR', 'DLC':'ICMR/AIIMS', 'Absolute Counts':'ICMR/AIIMS',
+      'LFT':'Clinical biochemistry norms', 'KFT':'Clinical biochemistry norms',
+      'Lipids':'ACC/AHA', 'Diabetes':'ADA', 'Thyroid':'ATA',
+      'Vitamins':'ICMR/WHO', 'Iron Studies':'WHO/ICMR',
+      'Inflammation':'Clinical norms', 'Electrolytes':'Clinical norms',
+      'Cardiac':'ACC/AHA'
+    }[p.category] || 'Clinical norms' : 'Lab';
+    if(whoRangeStr){
+      const ag = ageGroup(age);
+      const gLabel = genderKnown ? gender : null;
+      const aLabel = ageKnown ? ag.charAt(0).toUpperCase()+ag.slice(1) : null;
+      const qualifier = [aLabel, gLabel].filter(Boolean).join(' · ');
+      const fallbackNote = (!ageKnown || !genderKnown)
+        ? `<span style="color:var(--orange);font-size:10px;font-weight:700;margin-left:5px;" title="${!ageKnown?'Age not found in report — using adult defaults. ':''}${!genderKnown?'Gender not found — using generic range.':''}">⚠ estimated${!ageKnown?' (no age)':''}${!genderKnown?' (no gender)':''}</span>`
+        : '';
+      rangeHtml = `<div class="frange">${esc(rangeSource)}${qualifier?' ('+qualifier+')':''}: ${esc(whoRangeStr)}${fallbackNote}</div>`;
+    } else if(f.referenceRange){
+      rangeHtml = `<div class="frange">Lab range: ${esc(f.referenceRange)}</div>`;
+    }
+
+  /* External "read more" link via MedlinePlus search */
+  const extLink = p ? `<a href="https://medlineplus.gov/lab-tests/${encodeURIComponent((p.id||f.name).toLowerCase().replace(/[_\s]+/g,'-'))}/" target="_blank" rel="noopener" style="font-size:11px;color:var(--blue);font-weight:700;text-decoration:none;display:inline-block;margin-top:4px;">🔗 Read more on MedlinePlus ↗</a>` : '';
+
+  return `
+  <div class="fcard ${fc}" data-cat="${esc(f.category||'Other')}">
+    <div class="fcard-top">
+      <div class="fcard-name">${nameHtml}</div>
+      <span class="fbadge ${fc}">${labels[fc]||'NORMAL'}</span>
+    </div>
+    <div class="fcard-cat">${esc(f.category||'Other')}</div>
+    <div><span class="fval ${fc}">${esc(f.value||'—')}</span><span class="funit">${esc(f.unit||'')}</span></div>
+    ${rangeHtml}
+    <p class="fexpl">${esc(f.simpleExplanation||'')}</p>
+    ${hasExtra?`<button class="expand-btn" onclick="toggleExpand('${eid}',this)">📖 What does this test measure? ▾</button>
+      <div class="expand-body" id="${eid}">
+        ${f.whatMeans?`<strong>What it measures:</strong>${esc(f.whatMeans)}<br/><br/>`:''}
+        ${f.edu?`<strong>More detail:</strong>${esc(f.edu)}<br/><br/>`:''}
+        ${extLink}
+      </div>`:''}
+  </div>`;
+}
+
+function toggleExpand(id,btn){
+  const el=document.getElementById(id);
+  const open=el.classList.toggle('open');
+  const isRadio=btn.textContent.includes('Explain');
+  if(isRadio) btn.textContent=open?'💬 Explain this to me ▴':'💬 Explain this to me ▾';
+  else btn.textContent=open?'📖 What does this test measure? ▴':'📖 What does this test measure? ▾';
+}
+
+function buildTrendsContent(findings){
+  const numeric=findings.filter(f=>!isNaN(parseVal(f.value).num)).slice(0,8);
+  if(!numeric.length){
+    document.getElementById('r-trends-content').innerHTML='<div class="card"><p style="color:var(--ink3);font-size:14px;">No numeric findings available for trend visualization.</p></div>';
+    return;
+  }
+  const ts=Date.now();
+  let html=`<div class="info-note">ℹ️ Trend lines below are <strong>simulated</strong> to show how a value like yours typically changes over time. They are not your actual historical data. For real tracking, keep copies of each report.</div><div class="trends-grid">`;
+  numeric.forEach((f,idx)=>{
+    const val=parseVal(f.value).num;
+    const flag=(f.flag||'NORMAL').toLowerCase();
+    const color=(flag==='critical'||flag==='high')?'#c81e1e':flag==='low'?'#1a56db':'#057a55';
+    const months=['Jan','Feb','Mar','Apr','May','Jun'];
+    const data=months.map((_,i)=>{
+      if(i===5)return val;
+      const drift=val*0.06*(5-i);const noise=(Math.random()-.5)*val*0.04;
+      return parseFloat((val+(flag==='normal'?0:(flag==='high'||flag==='critical'?drift:-drift))+noise).toFixed(2));
+    });
+    let minRef=null,maxRef=null;
+    if(f.referenceRange){const m=f.referenceRange.match(/([\d.]+)\s*[-–]\s*([\d.]+)/);if(m){minRef=parseFloat(m[1]);maxRef=parseFloat(m[2]);}}
+    const trend=flag==='normal'?'stable':(flag==='high'||flag==='critical')?'up':'down';
+    const tLabel={up:'↑ Trending High',down:'↓ Trending Low',stable:'→ Stable'};
+    const id=`tc-${ts}-${idx}`;
+    html+=`<div class="tcard">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
+        <div><div style="font-size:14px;font-weight:800;">${esc(f.name)}</div><div style="font-size:11px;color:var(--ink3);margin-top:1px;">${esc(f.category||'')} · Simulated trend</div></div>
+        <div style="text-align:right;"><div style="font-size:20px;font-weight:800;color:${color};">${esc(f.value)} <span style="font-size:12px;color:var(--ink3);">${esc(f.unit||'')}</span></div>
+        <span class="trend-indicator trend-${trend}">${tLabel[trend]}</span></div>
+      </div>
+      <canvas id="${id}" height="100"></canvas></div>`;
+    setTimeout(()=>{
+      const ctx=document.getElementById(id)?.getContext('2d');if(!ctx)return;
+      const ds=[{label:f.name,data,borderColor:color,backgroundColor:color+'20',borderWidth:2.5,tension:0.4,fill:true,
+        pointBackgroundColor:months.map((_,i)=>i===5?color:'#fff'),pointBorderColor:color,
+        pointRadius:months.map((_,i)=>i===5?6:3),pointBorderWidth:2}];
+      if(minRef!==null)ds.push({label:'Min',data:Array(6).fill(minRef),borderColor:'#057a5555',borderWidth:1.5,borderDash:[5,5],pointRadius:0,fill:false});
+      if(maxRef!==null)ds.push({label:'Max',data:Array(6).fill(maxRef),borderColor:'#c81e1e55',borderWidth:1.5,borderDash:[5,5],pointRadius:0,fill:false});
+      chartObjs.push(new Chart(ctx,{type:'line',data:{labels:months,datasets:ds},options:{responsive:true,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.dataset.label+': '+c.parsed.y+' '+(f.unit||'')}}},scales:{x:{grid:{display:false},ticks:{font:{size:11}}},y:{grid:{color:'#f3f4f6'},ticks:{font:{size:11}}}}}}));
+    },160);
+  });
+  html+='</div>';
+  document.getElementById('r-trends-content').innerHTML=html;
+}
+
+/* ══════════════════════════════════════════
+   PRESCRIPTION RESULTS
+   ══════════════════════════════════════════ */
+function buildPrescriptionResults(r){
+  const meds=r.medicines||[];
+  const v=r.vitalsOnSlip||{};
+  const hasVitals=v&&Object.values(v).some(x=>x&&x!=='null'&&x!=='Unknown');
+  const labTests=Array.isArray(r.labTestsOrdered)&&r.labTestsOrdered.length?r.labTestsOrdered:null;
+  const interactions=Array.isArray(r.drugInteractions)&&r.drugInteractions.length?r.drugInteractions:null;
+
+  /* ── Summary tab ── */
+  const diagBadge=r.diagnosis&&r.diagnosis!=='Unknown'
+    ?`<span style="background:var(--purple-pale);color:var(--purple);border:1px solid var(--purple-border);padding:5px 14px;border-radius:999px;font-size:13px;font-weight:700;">🩺 ${esc(r.diagnosis)}</span>`:'';
+  const secDiag=Array.isArray(r.secondaryDiagnosis)&&r.secondaryDiagnosis.length
+    ?r.secondaryDiagnosis.map(d=>`<span style="background:var(--surface2);border:1px solid var(--border);padding:4px 11px;border-radius:999px;font-size:12px;font-weight:600;color:var(--ink2);margin:3px;display:inline-block;">${esc(d)}</span>`).join(''):'';
+
+  document.getElementById('r-summary-content').innerHTML=`
+  <div class="rx-header">
+    <h3>Prescription Analysis</h3>
+    <p>${[
+      r.doctorName&&r.doctorName!=='Unknown'?'Dr. '+esc(r.doctorName):'',
+      r.doctorQualification&&r.doctorQualification!=='Unknown'?esc(r.doctorQualification):'',
+      r.doctorSpecialty&&r.doctorSpecialty!=='Unknown'?esc(r.doctorSpecialty):'',
+      r.hospitalName&&r.hospitalName!=='Unknown'?esc(r.hospitalName):'',
+      r.reportDate&&r.reportDate!=='Unknown'?esc(r.reportDate):''
+    ].filter(Boolean).join(' · ')}</p>
+    ${r.doctorRegNo&&r.doctorRegNo!=='Unknown'?`<p style="opacity:.6;font-size:11px;margin-top:4px;">Reg. No: ${esc(r.doctorRegNo)}</p>`:''}
+  </div>
+  <div class="summary-grid">
+    <div>
+      <div class="card">
+        <div class="card-title">What This Prescription Treats</div>
+        <div style="margin-bottom:10px;">${diagBadge}${secDiag?`<div style="margin-top:8px;">${secDiag}</div>`:''}</div>
+        <div style="font-size:15px;line-height:1.85;color:var(--ink2);margin-top:10px;">${esc(r.summary||'')}</div>
+      </div>
+      <div class="card" style="background:var(--amber-pale);border-color:var(--amber-border);">
+        <div class="card-title" style="color:var(--amber);">⚡ How to Take This Prescription</div>
+        ${(r.nextSteps||[]).map((s,i)=>`<div class="step-item"><span class="step-num">${i+1}</span><span class="step-text">${esc(s)}</span></div>`).join('')}
+        ${r.generalInstructions&&r.generalInstructions!=='Unknown'?`<div style="margin-top:12px;padding:11px 13px;background:var(--surface);border-radius:9px;font-size:13px;color:var(--ink2);border-left:3px solid var(--amber-border);">📋 <strong>Doctor's instructions:</strong> ${esc(r.generalInstructions)}</div>`:''}
+        ${r.followUpDate&&r.followUpDate!=='Unknown'?`<div style="margin-top:10px;padding:10px 13px;background:var(--blue-pale);border-radius:9px;font-size:13px;color:var(--blue);font-weight:700;border:1px solid var(--blue-border);">📅 Follow-up appointment: ${esc(r.followUpDate)}</div>`:''}
+        ${r.followUpInstructions&&r.followUpInstructions!=='Unknown'?`<div style="margin-top:8px;padding:9px 12px;background:var(--surface);border-radius:8px;font-size:12px;color:var(--ink2);">⚠️ <strong>Watch for before follow-up:</strong> ${esc(r.followUpInstructions)}</div>`:''}
+      </div>
+      ${interactions?`<div class="card" style="background:#fff8f1;border-color:var(--orange-border);">
+        <div class="card-title" style="color:var(--orange);">⚡ Drug Interaction Alerts</div>
+        ${interactions.map(i=>`<div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;color:var(--ink2);">⚠️ ${esc(i)}</div>`).join('')}
+      </div>`:''}
+    </div>
+    <div>
+      <div class="card">
+        <div class="card-title">Prescription at a Glance</div>
+        <div class="stats-row" style="grid-template-columns:1fr 1fr;">
+          <div class="stat-pill tot"><div class="stat-num">${meds.length}</div><div class="stat-label">Medicines</div></div>
+          <div class="stat-pill nrm"><div class="stat-num">${meds.filter(m=>m.duration&&!m.duration.toLowerCase().includes('ongoing')&&!m.duration.toLowerCase().includes('review')).length}</div><div class="stat-label">Short Course</div></div>
+        </div>
+        <div style="margin-top:4px;">
+        ${meds.map(m=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);gap:8px;">
+          <div>
+            <div style="font-size:13px;font-weight:700;">${esc(m.name)}</div>
+            <div style="font-size:11px;color:var(--ink3);">${esc(m.genericName||'')}${m.dosageForm?' · '+esc(m.dosageForm):''}</div>
+          </div>
+          <div style="text-align:right;font-size:12px;color:var(--ink3);white-space:nowrap;">
+            <div style="font-weight:700;color:var(--ink);">${esc(m.dose||'')}</div>
+            <div>${esc(m.frequency||'')}</div>
+          </div>
+        </div>`).join('')}
+        </div>
+      </div>
+      ${hasVitals?`<div class="card">
+        <div class="card-title">Vitals Recorded on Slip</div>
+        <div class="anatomy-grid">
+          ${v.bp&&v.bp!=='null'?`<div class="anatomy-item"><div class="anatomy-organ">Blood Pressure</div><div class="anatomy-status normal">${esc(v.bp)}</div></div>`:''}
+          ${v.weight&&v.weight!=='null'?`<div class="anatomy-item"><div class="anatomy-organ">Weight</div><div class="anatomy-status normal">${esc(v.weight)}</div></div>`:''}
+          ${v.pulse&&v.pulse!=='null'?`<div class="anatomy-item"><div class="anatomy-organ">Pulse</div><div class="anatomy-status normal">${esc(v.pulse)}</div></div>`:''}
+          ${v.sugar&&v.sugar!=='null'?`<div class="anatomy-item"><div class="anatomy-organ">Blood Sugar</div><div class="anatomy-status normal">${esc(v.sugar)}</div></div>`:''}
+          ${v.temp&&v.temp!=='null'?`<div class="anatomy-item"><div class="anatomy-organ">Temperature</div><div class="anatomy-status normal">${esc(v.temp)}</div></div>`:''}
+          ${v.spo2&&v.spo2!=='null'?`<div class="anatomy-item"><div class="anatomy-organ">SpO2</div><div class="anatomy-status normal">${esc(v.spo2)}</div></div>`:''}
+        </div>
+      </div>`:''}
+      ${labTests?`<div class="card" style="background:var(--blue-pale);border-color:var(--blue-border);">
+        <div class="card-title" style="color:var(--blue);">🔬 Lab Tests Ordered</div>
+        ${labTests.map(t=>`<div style="padding:6px 0;border-bottom:1px solid var(--blue-border);font-size:13px;font-weight:600;color:var(--ink);">→ ${esc(t)}</div>`).join('')}
+        <div style="font-size:11px;color:var(--blue);margin-top:8px;">Get these tests done before your follow-up visit.</div>
+      </div>`:''}
+      ${r.allergies&&r.allergies!=='Unknown'?`<div class="card" style="background:var(--red-pale);border-color:var(--red-border);">
+        <div class="card-title" style="color:var(--red);">🚫 Allergies on Record</div>
+        <div style="font-size:13px;font-weight:700;color:var(--red);">${esc(r.allergies)}</div>
+      </div>`:''}
+    </div>
+  </div>`;
+
+  /* ── Daily schedule ── */
+  const schedule={Morning:[],Afternoon:[],Evening:[],Night:[]};
+  meds.forEach(m=>{
+    const timings=Array.isArray(m.timing)?m.timing:['Morning'];
+    timings.forEach(t=>{
+      const key=t.charAt(0).toUpperCase()+t.slice(1).toLowerCase();
+      if(schedule[key]!==undefined) schedule[key].push(m);
+    });
+  });
+
+  /* ── Findings tab ── */
+  document.getElementById('r-findings-content').innerHTML=`
+  <div style="margin-bottom:20px;">
+    <div class="rx-schedule">
+      <div class="rx-schedule-title">📅 Daily Medication Schedule</div>
+      <div class="schedule-grid">
+        ${['Morning','Afternoon','Evening','Night'].map(t=>`
+        <div class="schedule-col">
+          <h4>${{Morning:'🌅',Afternoon:'☀️',Evening:'🌇',Night:'🌙'}[t]} ${t}</h4>
+          ${schedule[t].length?schedule[t].map(m=>`<div class="schedule-med">
+            <div class="schedule-med-name">${esc(m.name)}</div>
+            <div class="schedule-med-dose">${esc(m.dose||'')}${m.dosageForm?' · '+esc(m.dosageForm):''}</div>
+            <div class="schedule-med-dose">${esc(m.foodInstruction||'')}</div>
+          </div>`).join(''):'<div style="font-size:12px;color:var(--ink3);">None</div>'}
+        </div>`).join('')}
+      </div>
+    </div>
+  </div>
+  ${meds.map(m=>buildMedCard(m)).join('')}`;
+
+  document.getElementById('r-trends-content').innerHTML='<div class="card"><p style="color:var(--ink3);">Trend charts track numeric blood values over time and are not applicable for prescriptions.</p></div>';
+}
+
+function buildMedCard(m){
+  const timings=Array.isArray(m.timing)?m.timing:[];
+  const timingPills=timings.map(t=>{
+    const k=t.toLowerCase();
+    return `<span class="timing-pill ${k}">${{morning:'🌅 Morning',afternoon:'☀️ Afternoon',evening:'🌇 Evening',night:'🌙 Night'}[k]||'🕐 '+esc(t)}</span>`;
+  }).join('');
+  const foodPill=m.foodInstruction?`<span class="timing-pill food">${
+    /before/i.test(m.foodInstruction)?'🍽️ Before food':
+    /after/i.test(m.foodInstruction)?'🍽️ After food':
+    /empty/i.test(m.foodInstruction)?'⏱️ Empty stomach':
+    /with/i.test(m.foodInstruction)?'🍽️ With food':
+    '🍽️ '+esc(m.foodInstruction)
+  }</span>`:'';
+
+  /* pregnancy safety badge */
+  const pregColor={Safe:'var(--green)',Caution:'var(--amber)',Avoid:'var(--red)',Unknown:'var(--ink3)'};
+  const pregBg={Safe:'var(--green-pale)',Caution:'var(--amber-pale)',Avoid:'var(--red-pale)',Unknown:'var(--surface2)'};
+  const pregBadge=m.pregnancySafety&&m.pregnancySafety!=='Unknown'
+    ?`<span style="background:${pregBg[m.pregnancySafety]||'var(--surface2)'};color:${pregColor[m.pregnancySafety]||'var(--ink3)'};border:1px solid currentColor;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:700;">🤰 ${esc(m.pregnancySafety)}</span>`:'';
+
+  /* warning flags */
+  const warnFlags=Array.isArray(m.warningFlags)&&m.warningFlags.length
+    ?`<div style="display:flex;flex-wrap:wrap;gap:5px;margin:8px 0;">
+        ${m.warningFlags.map(w=>`<span style="background:#1c2336;color:#fff;padding:3px 9px;border-radius:6px;font-size:10px;font-weight:700;">${esc(w)}</span>`).join('')}
+      </div>`:'' ;
+
+  return `
+  <div class="med-card">
+    <div class="med-top">
+      <div>
+        <div class="med-name">${esc(m.name||'Unknown')}${pregBadge?` ${pregBadge}`:''}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;">
+          ${m.genericName?`<span style="font-size:12px;color:var(--ink3);font-style:italic;">${esc(m.genericName)}</span>`:''}
+          ${m.dosageForm?`<span style="font-size:11px;background:var(--surface2);border:1px solid var(--border);padding:1px 7px;border-radius:4px;color:var(--ink2);">${esc(m.dosageForm)}</span>`:''}
+          ${m.route&&m.route!=='Oral'?`<span style="font-size:11px;background:var(--teal-pale);border:1px solid #a5f3fc;padding:1px 7px;border-radius:4px;color:var(--teal);">${esc(m.route)}</span>`:''}
+        </div>
+      </div>
+      ${m.drugClass?`<span class="med-class-badge" style="white-space:nowrap;">${esc(m.drugClass)}</span>`:''}
+    </div>
+
+    <div class="med-details">
+      ${m.dose?`<div class="med-detail-item"><div class="med-detail-label">Dose</div><div class="med-detail-val">${esc(m.dose)}</div></div>`:''}
+      ${m.frequency?`<div class="med-detail-item"><div class="med-detail-label">Frequency</div><div class="med-detail-val">${esc(m.frequency)}</div></div>`:''}
+      ${m.duration?`<div class="med-detail-item"><div class="med-detail-label">Duration</div><div class="med-detail-val">${esc(m.duration)}</div></div>`:''}
+      ${m.totalQuantity?`<div class="med-detail-item"><div class="med-detail-label">Total Quantity</div><div class="med-detail-val">${esc(m.totalQuantity)}</div></div>`:''}
+    </div>
+
+    <div class="timing-pills">${timingPills}${foodPill}</div>
+    ${warnFlags}
+
+    ${m.purpose?`<div class="med-purpose">
+      <strong style="font-size:10px;text-transform:uppercase;letter-spacing:.7px;color:var(--blue);display:block;margin-bottom:5px;">Why you have been prescribed this:</strong>
+      ${esc(m.purpose)}
+    </div>`:''}
+
+    ${m.mechanismSimple?`<div style="margin-top:8px;padding:9px 12px;background:var(--surface2);border-radius:8px;font-size:12.5px;color:var(--ink2);line-height:1.6;border-left:3px solid var(--border2);">
+      <strong style="font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:var(--ink3);display:block;margin-bottom:3px;">How it works:</strong>
+      ${esc(m.mechanismSimple)}
+    </div>`:''}
+
+    ${m.importantInstructions?`<div class="med-warnings" style="margin-top:8px;">⚠️ <strong>Important:</strong> ${esc(m.importantInstructions)}</div>`:''}
+
+    ${m.commonSideEffects?`<div style="margin-top:8px;font-size:12px;color:var(--ink3);background:var(--surface2);border-radius:8px;padding:9px 11px;">
+      <strong style="color:var(--ink2);">Common side effects you may notice:</strong> ${esc(m.commonSideEffects)}
+    </div>`:''}
+
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px dashed var(--border);">
+      ${m.storageInstructions?`<span style="font-size:11px;color:var(--ink3);">🌡️ ${esc(m.storageInstructions)}</span>`:''}
+      ${m.substitutable===false?`<span style="font-size:11px;color:var(--red);font-weight:700;">⛔ No generic substitution</span>`:''}
+    </div>
+  </div>`;
+}
+
+/* ══════════════════════════════════════════
+   RADIOLOGY RESULTS
+   ══════════════════════════════════════════ */
+function buildRadiologyResults(r){
+  const findings=r.findings||[];
+  const abnFindings=findings.filter(f=>!f.isNormal);
+  const nrmFindings=findings.filter(f=>f.isNormal);
+
+  /* Summary */
+  document.getElementById('r-summary-content').innerHTML=`
+  <div class="radio-header">
+    <h3>${esc(r.modalityType||'Radiology')} — ${esc(r.bodyPart||'')}</h3>
+    <p>${r.radiologistName&&r.radiologistName!=='Unknown'?'Radiologist: '+esc(r.radiologistName)+' · ':''
+    }${r.referringDoctor&&r.referringDoctor!=='Unknown'?'Referred by: Dr. '+esc(r.referringDoctor)+' · ':''
+    }${r.reportDate&&r.reportDate!=='Unknown'?esc(r.reportDate):''}</p>
+  </div>
+  <div class="summary-grid">
+    <div>
+      <div class="card">
+        <div class="card-title">Radiologist's Overall Impression — In Plain English</div>
+        <div style="font-size:15px;line-height:1.85;color:var(--ink2);">${esc(r.impressionSummary||r.summary||'No summary available.')}</div>
+      </div>
+      <div class="card" style="background:var(--amber-pale);border-color:var(--amber-border);">
+        <div class="card-title" style="color:var(--amber);">⚡ Recommended Next Steps</div>
+        ${(r.nextSteps||[]).map((s,i)=>`<div class="step-item"><span class="step-num">${i+1}</span><span class="step-text">${esc(s)}</span></div>`).join('')}
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <div class="card-title">At a Glance</div>
+        <div class="stats-row">
+          <div class="stat-pill abn"><div class="stat-num">${abnFindings.length}</div><div class="stat-label">Abnormal</div></div>
+          <div class="stat-pill nrm"><div class="stat-num">${nrmFindings.length}</div><div class="stat-label">Normal</div></div>
+          <div class="stat-pill tot"><div class="stat-num">${findings.length}</div><div class="stat-label">Total</div></div>
+        </div>
+        ${r.conditions&&r.conditions.length?`<div class="card-title" style="margin-top:10px;">Identified Conditions</div>${r.conditions.map(c=>`<span class="cond-tag">◆ ${esc(c)}</span>`).join('')}`:''}
+      </div>
+      ${r.bodySystemStatus&&r.bodySystemStatus.length?`
+      <div class="card">
+        <div class="card-title">System Status Overview</div>
+        <div class="anatomy-grid">
+          ${r.bodySystemStatus.map(s=>`<div class="anatomy-item">
+            <div class="anatomy-organ">${esc(s.system)}</div>
+            <div class="anatomy-status ${s.status||'normal'}">${s.status==='normal'?'✓ Normal':s.status==='borderline'?'⚠ Borderline':'✗ Abnormal'}</div>
+            ${s.note?`<div style="font-size:11px;color:var(--ink3);margin-top:3px;">${esc(s.note)}</div>`:''}
+          </div>`).join('')}
+        </div>
+      </div>`:''}
+    </div>
+  </div>`;
+
+  /* Findings tab */
+  const sevOrder={Severe:0,Moderate:1,Mild:2,Incidental:3,Normal:4};
+  const sorted=[...findings].sort((a,b)=>(sevOrder[a.severity]??5)-(sevOrder[b.severity]??5));
+  document.getElementById('r-findings-content').innerHTML=sorted.map(f=>buildRadiologyFindingCard(f)).join('');
+  document.getElementById('r-trends-content').innerHTML='<div class="card"><p style="color:var(--ink3);">Trend charts show changes in numeric blood values over time and are not applicable for radiology reports.</p></div>';
+}
+
+function buildRadiologyFindingCard(f){
+  const sev=(f.severity||'Normal').toLowerCase().replace(/\s+/g,'');
+  const sevClass={normal:'sev-normal',mild:'sev-mild',moderate:'sev-moderate',severe:'sev-severe',critical:'sev-severe',incidental:'sev-incidental'}[sev]||'sev-normal';
+  const eid='rf-'+Math.random().toString(36).slice(2,8);
+
+  /* What shows immediately — just the name, location, severity badge, and action */
+  const actionBadge = f.actionRequired
+    ? `<div style="margin-top:10px;font-size:12px;font-weight:700;padding:6px 11px;border-radius:7px;display:inline-block;${
+        /urgent|emergency|immediate/i.test(f.actionRequired)?'background:var(--red-pale);color:var(--red);border:1px solid var(--red-border);':
+        /specialist|soon/i.test(f.actionRequired)?'background:var(--orange-pale);color:var(--orange);border:1px solid var(--orange-border);':
+        /mention|next visit/i.test(f.actionRequired)?'background:var(--amber-pale);color:var(--amber);border:1px solid var(--amber-border);':
+        'background:var(--green-pale);color:var(--green);border:1px solid var(--green-border);'
+      }">→ ${esc(f.actionRequired)}</div>` : '';
+
+  /* Plain title shown immediately if available, otherwise medical name */
+  const displayTitle = f.plainTitle || f.finding || 'Finding';
+
+  /* Hidden expand section */
+  const hasDetails = f.plainDescription || f.whatItMeans || f.analogy || f.clinicalSignificance;
+  const expandSection = hasDetails ? `
+    <button class="expand-btn" onclick="toggleExpand('${eid}',this)">💬 Explain this to me ▾</button>
+    <div class="expand-body" id="${eid}">
+      ${f.plainDescription?`<div style="margin-bottom:10px;"><strong>What this means in plain language:</strong><div style="margin-top:4px;color:var(--ink2);line-height:1.7;">${esc(f.plainDescription)}</div></div>`:''}
+      ${f.whatItMeans?`<div style="margin-bottom:10px;padding:9px 12px;background:var(--blue-pale);border-radius:8px;border-left:3px solid var(--blue-border);"><strong style="color:var(--blue);font-size:11px;display:block;margin-bottom:3px;">WHAT THIS MEANS FOR YOU:</strong>${esc(f.whatItMeans)}</div>`:''}
+      ${f.analogy?`<div style="margin-bottom:10px;padding:9px 12px;background:var(--purple-pale);border-radius:8px;border-left:3px solid var(--purple-border);"><strong style="color:var(--purple);font-size:11px;display:block;margin-bottom:3px;">THINK OF IT LIKE THIS:</strong>${esc(f.analogy)}</div>`:''}
+      ${f.clinicalSignificance&&!f.isNormal?`<div style="padding:9px 12px;background:var(--amber-pale);border-radius:8px;border-left:3px solid var(--amber-border);"><strong style="color:var(--amber);font-size:11px;display:block;margin-bottom:3px;">WHY IT MATTERS MEDICALLY:</strong>${esc(f.clinicalSignificance)}</div>`:''}
+    </div>` : '';
+
+  return `
+  <div class="finding-card">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;">
+      <div>
+        <span class="finding-severity ${sevClass}">${esc(f.severity||'Normal')}</span>
+        <div class="finding-title" style="margin-top:6px;">${esc(displayTitle)}</div>
+        ${f.finding&&f.plainTitle?`<div style="font-size:11px;color:var(--ink3);margin-top:2px;font-style:italic;">Medical term: ${esc(f.finding)}</div>`:''}
+        ${f.organ?`<div class="finding-location">📍 ${esc(f.organ)}</div>`:''}
+      </div>
+    </div>
+    ${actionBadge}
+    ${expandSection}
+  </div>`;
+}
+
+/* ══════════════════════════════════════════
+   EDUCATION TAB (all types)
+   ══════════════════════════════════════════ */
+const CONDITION_EDU={
+  'anemia':{icon:'🩸',link:'https://www.who.int/news-room/fact-sheets/detail/anaemia',linkLabel:'WHO: Anaemia fact sheet',body:'Your blood doesn\'t have enough healthy red blood cells to carry adequate oxygen to your body\'s tissues.',causes:'Most common in India: iron deficiency (poor diet or blood loss), Vitamin B12 deficiency (vegetarians), folate deficiency, or chronic disease.',action:'See a general physician. They will identify the type of anemia (iron, B12, or folate) from your CBC pattern and prescribe the correct supplement. Do not self-prescribe — the wrong supplement can delay treatment.',watch:'Worsening breathlessness at rest, chest pain, or fainting — these need immediate medical attention.'},
+  'iron deficiency':{icon:'🔴',link:'https://medlineplus.gov/irondeficiencyanemia.html',linkLabel:'MedlinePlus: Iron Deficiency Anemia',body:'Your iron stores are depleted, meaning your body cannot make enough healthy red blood cells.',causes:'Poor dietary iron intake, inadequate absorption, or blood loss (heavy periods are a common cause in women).',action:'Your doctor will prescribe iron supplements (usually ferrous sulfate or ferrous bisglycinate). Take with Vitamin C-rich food to improve absorption. Avoid tea/coffee 1 hour before and after iron tablets.',watch:'Fatigue and breathlessness that worsen despite treatment — this means absorption may be poor and needs further investigation.'},
+  'leukocytosis':{icon:'🧬',link:'https://medlineplus.gov/lab-tests/white-blood-cell-wbc-differential/',linkLabel:'MedlinePlus: WBC Count',body:'Your white blood cell count is higher than normal, indicating your immune system is actively responding to something.',causes:'Most commonly: bacterial infection, viral infection, physical stress, steroid medications, or (rarely) blood disorders.',action:'See your doctor to identify the source and cause. Combined with neutrophilia, this usually means a bacterial infection requiring medical evaluation and possibly antibiotics.',watch:'High fever (above 102°F/39°C), severe localised pain, difficulty breathing — seek emergency care immediately.'},
+  'neutrophilia':{icon:'🦠',link:'https://medlineplus.gov/lab-tests/white-blood-cell-wbc-differential/',linkLabel:'MedlinePlus: WBC Differential',body:'Your neutrophil count is elevated — these are the cells your body sends first to fight bacterial infections.',causes:'Usually: active bacterial infection. Also seen with physical stress, steroid medications, or certain medications.',action:'See a doctor promptly. They will assess whether antibiotic treatment is needed based on your symptoms and clinical examination.',watch:'Fever, severe pain, rapid breathing, or feeling very unwell — seek same-day care.'},
+  'lymphocytopenia':{icon:'💉',link:'https://medlineplus.gov/lab-tests/lymphocyte-count/',linkLabel:'MedlinePlus: Lymphocyte Count',body:'Your lymphocyte count is lower than normal, reducing your ability to fight viral infections.',causes:'Common in acute severe bacterial infections (the bacteria overwhelm lymphocytes), viral infections, or medications.',action:'Usually resolves with treatment of the underlying cause. Persistent lymphocytopenia needs specialist evaluation.',watch:'Frequent infections, unusual rashes, or oral sores — these suggest the immune system is significantly compromised.'},
+  'hypothyroidism':{icon:'🦋',link:'https://www.who.int/news-room/fact-sheets/detail/iodine-deficiency-disorders',linkLabel:'WHO: Thyroid Disorders',body:'Your thyroid gland is underactive — not producing enough hormone to maintain normal metabolism, energy, and body function.',causes:'Most common cause in India: Hashimoto\'s thyroiditis (autoimmune). Also: iodine deficiency, or post-thyroid surgery.',action:'See an endocrinologist or general physician. Treatment is a once-daily thyroid hormone tablet (thyroxine/levothyroxine) — safe, effective, and usually lifelong.',watch:'Severe fatigue, puffy face, very slow heartbeat, extreme cold sensitivity, or severe constipation — these indicate severe hypothyroidism needing urgent treatment.'},
+  'vitamin d deficiency':{icon:'☀️',link:'https://www.who.int/tools/elena/commentary/vitamind-children',linkLabel:'WHO: Vitamin D',body:'You have insufficient Vitamin D for bone strength, immune function, muscle function, and mood regulation.',causes:'Extremely common in India (affects ~80% of Indians) despite abundant sunlight. Caused by indoor lifestyles, clothing covering skin, and dark skin pigmentation.',action:'Doctor typically prescribes Vitamin D3 supplements — usually 60,000 IU weekly for 8–12 weeks, then 60,000 IU monthly as maintenance. Sun exposure alone is rarely sufficient.',watch:'Bone pain, muscle weakness, or frequent infections persisting despite supplementation.'},
+  'vitamin b12 deficiency':{icon:'🧠',link:'https://medlineplus.gov/vitamins.html',linkLabel:'MedlinePlus: Vitamin B12',body:'You have insufficient Vitamin B12, which your brain, nerves, and red blood cell production critically depend on.',causes:'Most common in Indian vegetarians who avoid all animal products. Also caused by poor gut absorption (pernicious anemia).',action:'Severe deficiency requires B12 injections (methylcobalamin) — injections are more effective than tablets for most patients. Mild deficiency: high-dose oral methylcobalamin. Diet changes alone are rarely sufficient for treatment.',watch:'Tingling/numbness in hands or feet, unsteady walking, memory problems, or mood changes — these indicate nerve involvement requiring prompt treatment.'},
+  'fatty liver':{icon:'🫀',link:'https://medlineplus.gov/fattyliverdisease.html',linkLabel:'MedlinePlus: Fatty Liver Disease',body:'Excess fat has accumulated in liver cells, causing inflammation that can impair liver function over time.',causes:'Most common causes: obesity, insulin resistance/diabetes, alcohol, medications.',action:'See a gastroenterologist or general physician. Key lifestyle changes: reduce sugar and refined carbs (not just fat), exercise regularly (brisk walking 30 min daily), limit alcohol completely, lose weight gradually if overweight.',watch:'Worsening abdominal pain (right side under ribs), jaundice (yellow skin/eyes), or swelling in legs — seek urgent medical attention.'},
+  'diabetes':{icon:'🩺',link:'https://www.who.int/news-room/fact-sheets/detail/diabetes',linkLabel:'WHO: Diabetes fact sheet',body:'Your blood sugar is elevated, indicating your body cannot properly regulate glucose levels.',causes:'Type 2 diabetes: insulin resistance due to genetics, obesity, inactivity, or poor diet. Type 1: autoimmune destruction of insulin-producing cells.',action:'See an endocrinologist or general physician immediately. HbA1c will determine if medication (metformin) is needed. Even pre-diabetes can be reversed with diet and exercise in many cases.',watch:'Excessive thirst, frequent urination, blurred vision, or wounds that don\'t heal — these indicate uncontrolled diabetes needing urgent attention.'},
+};
+
+function buildEducationTab(r, kind){
+  let html='<div class="edu-grid">';
+  const added=new Set();
+
+  /* Condition-specific cards */
+  (r.conditions||[]).forEach(c=>{
+    const key=c.toLowerCase().replace(/[^a-z\s]/g,'').trim();
+    let bestMatch=null,bestKey='';
+    for(const [k,v] of Object.entries(CONDITION_EDU)){
+      if(key.includes(k)||k.includes(key)){if(k.length>bestKey.length){bestKey=k;bestMatch=v;}}
+    }
+    if(bestMatch&&!added.has(bestKey)){
+      added.add(bestKey);
+      html+=`<div class="edu-card">
+        <div class="edu-icon-wrap">${bestMatch.icon}</div>
+        <div class="edu-title">${esc(c)}</div>
+        <div class="edu-body">${bestMatch.body}</div>
+        <div class="edu-section"><div class="edu-section-title">Common causes in India</div><div class="edu-section-body">${bestMatch.causes}</div></div>
+        <div class="edu-section" style="background:var(--blue-pale);"><div class="edu-section-title" style="color:var(--blue);">What to do</div><div class="edu-section-body">${bestMatch.action}</div></div>
+        <div class="edu-section" style="background:var(--red-pale);"><div class="edu-section-title" style="color:var(--red);">Watch out for</div><div class="edu-section-body">${bestMatch.watch}</div></div>
+        ${bestMatch.link?`<div style="margin-top:12px;padding-top:10px;border-top:1px dashed var(--border);"><a href="${bestMatch.link}" target="_blank" rel="noopener" style="font-size:12px;color:var(--blue);font-weight:700;text-decoration:none;">🔗 ${esc(bestMatch.linkLabel||'Read more')} ↗</a></div>`:''}
+      </div>`;
+    } else if(!bestMatch){
+      html+=`<div class="edu-card">
+        <div class="edu-icon-wrap">🔍</div>
+        <div class="edu-title">${esc(c)}</div>
+        <div class="edu-body">This condition was identified in your report. Please discuss with your doctor for a full explanation tailored to your health situation.</div>
+      </div>`;
+    }
+  });
+
+  /* Type-specific educational cards */
+  if(kind==='blood'){
+    const abnormal=(r.findings||[]).filter(f=>f.flag&&f.flag!=='NORMAL');
+    abnormal.forEach(f=>{
+      const edu=f.edu||(resolveParam(f.name)?.edu);
+      if(!edu) return;
+      const paramId = resolveParam(f.name)?.id || '';
+      const mlLink = paramId ? `https://medlineplus.gov/lab-tests/${paramId.replace(/_/g,'-')}/` : `https://medlineplus.gov/laboratorytests.html`;
+      html+=`<div class="edu-card">
+        <div class="edu-icon-wrap">📊</div>
+        <div class="edu-title">${esc(f.name)} <span style="font-size:11px;color:var(--ink3);font-weight:400;">(${esc(f.flag||'')})</span></div>
+        <div class="edu-body">${edu}</div>
+        ${f.whatMeans?`<div class="edu-section"><div class="edu-section-title">What this test measures</div><div class="edu-section-body">${esc(f.whatMeans)}</div></div>`:''}
+        <div style="margin-top:12px;padding-top:10px;border-top:1px dashed var(--border);">
+          <a href="${mlLink}" target="_blank" rel="noopener" style="font-size:12px;color:var(--blue);font-weight:700;text-decoration:none;">🔗 Read more on MedlinePlus ↗</a>
+        </div>
+      </div>`;
+    });
+  } else if(kind==='prescription'){
+    const meds=r.medicines||[];
+    meds.forEach(m=>{
+      const pregColor={Safe:'var(--green)',Caution:'var(--amber)',Avoid:'var(--red)'};
+      html+=`<div class="edu-card">
+        <div class="edu-icon-wrap">💊</div>
+        <div class="edu-title">
+          ${esc(m.name)}
+          ${m.genericName?`<span style="font-size:12px;color:var(--ink3);font-weight:400;font-style:italic;"> (${esc(m.genericName)})</span>`:''}
+          ${m.drugClass?`<span style="font-size:11px;background:var(--teal-pale);color:var(--teal);border:1px solid #a5f3fc;padding:2px 8px;border-radius:999px;margin-left:6px;font-weight:700;">${esc(m.drugClass)}</span>`:''}
+        </div>
+        <div class="edu-body">${esc(m.purpose||'Ask your doctor about the purpose of this medication.')}</div>
+        ${m.mechanismSimple?`<div class="edu-section"><div class="edu-section-title">How it works in your body</div><div class="edu-section-body">${esc(m.mechanismSimple)}</div></div>`:''}
+        <div class="edu-section" style="background:var(--blue-pale);">
+          <div class="edu-section-title" style="color:var(--blue);">Dosing details</div>
+          <div class="edu-section-body">
+            ${[m.dose,m.frequency,m.foodInstruction,m.duration?'Duration: '+m.duration:'',m.route&&m.route!=='Oral'?'Route: '+m.route:'',m.totalQuantity?'Total: '+m.totalQuantity:''].filter(Boolean).join(' · ')}
+          </div>
+        </div>
+        ${m.importantInstructions?`<div class="edu-section" style="background:var(--amber-pale);"><div class="edu-section-title" style="color:var(--amber);">⚠️ Important instructions</div><div class="edu-section-body">${esc(m.importantInstructions)}</div></div>`:''}
+        ${m.commonSideEffects?`<div class="edu-section"><div class="edu-section-title">Side effects to watch for</div><div class="edu-section-body">${esc(m.commonSideEffects)}</div></div>`:''}
+        ${m.storageInstructions?`<div class="edu-section"><div class="edu-section-title">Storage</div><div class="edu-section-body">🌡️ ${esc(m.storageInstructions)}</div></div>`:''}
+        ${m.pregnancySafety&&m.pregnancySafety!=='Unknown'?`<div class="edu-section" style="background:${m.pregnancySafety==='Avoid'?'var(--red-pale)':m.pregnancySafety==='Caution'?'var(--amber-pale)':'var(--green-pale)'};"><div class="edu-section-title" style="color:${pregColor[m.pregnancySafety]||'var(--ink3)'};">🤰 Pregnancy</div><div class="edu-section-body">${m.pregnancySafety==='Safe'?'Generally considered safe during pregnancy. Confirm with your doctor.':m.pregnancySafety==='Caution'?'Use with caution during pregnancy — inform your doctor if you are pregnant or planning to conceive.':'Generally avoided during pregnancy — inform your doctor immediately if you are pregnant.'}</div></div>`:''}
+        <div style="margin-top:12px;padding-top:10px;border-top:1px dashed var(--border);display:flex;gap:12px;flex-wrap:wrap;">
+          ${m.genericName?`<a href="https://medlineplus.gov/druginfo/meds/${encodeURIComponent((m.genericName||'').toLowerCase().replace(/\s+/g,''))}.html" target="_blank" rel="noopener" style="font-size:12px;color:var(--blue);font-weight:700;text-decoration:none;">🔗 MedlinePlus: ${esc(m.genericName)} ↗</a>`:''}
+          <a href="https://www.1mg.com/search/all?name=${encodeURIComponent(m.name||'')}" target="_blank" rel="noopener" style="font-size:12px;color:var(--teal);font-weight:700;text-decoration:none;">🔗 1mg: ${esc(m.name)} ↗</a>
+        </div>
+      </div>`;
+    });
+    /* Drug interactions card if any */
+    const interactions=Array.isArray(r.drugInteractions)&&r.drugInteractions.length?r.drugInteractions:null;
+    if(interactions){
+      html+=`<div class="edu-card" style="background:#fff8f1;border-color:var(--orange-border);">
+        <div class="edu-icon-wrap" style="background:var(--orange-pale);">⚡</div>
+        <div class="edu-title" style="color:var(--orange);">Drug Interactions in This Prescription</div>
+        <div class="edu-body">Your doctor is aware of these interactions and has determined that the benefit outweighs the risk. However, you should monitor for any unusual symptoms.</div>
+        ${interactions.map(i=>`<div class="edu-section"><div class="edu-section-body">⚠️ ${esc(i)}</div></div>`).join('')}
+      </div>`;
+    }
+  } else if(kind==='radiology'){
+    (r.findings||[]).filter(f=>!f.isNormal).forEach(f=>{
+      const searchTerm = encodeURIComponent((f.finding||'').toLowerCase().replace(/\s+/g,'-'));
+      html+=`<div class="edu-card">
+        <div class="edu-icon-wrap">🫁</div>
+        <div class="edu-title">${esc(f.plainTitle||f.finding)}</div>
+        <div class="edu-body">${esc(f.plainDescription||'')}</div>
+        ${f.clinicalSignificance?`<div class="edu-section" style="background:var(--amber-pale);"><div class="edu-section-title" style="color:var(--amber);">Why this matters</div><div class="edu-section-body">${esc(f.clinicalSignificance)}</div></div>`:''}
+        <div style="margin-top:12px;padding-top:10px;border-top:1px dashed var(--border);display:flex;gap:12px;flex-wrap:wrap;">
+          <a href="https://medlineplus.gov/diagnosticimaging.html" target="_blank" rel="noopener" style="font-size:12px;color:var(--blue);font-weight:700;text-decoration:none;">🔗 MedlinePlus: Imaging ↗</a>
+          <a href="https://www.radiologyinfo.org/" target="_blank" rel="noopener" style="font-size:12px;color:var(--blue);font-weight:700;text-decoration:none;">🔗 RadiologyInfo.org ↗</a>
+        </div>
+      </div>`;
+    });
+  }
+
+  /* All clear */
+  const noAbnormal=(kind==='blood'&&!(r.findings||[]).some(f=>f.flag&&f.flag!=='NORMAL')&&!r.conditions?.length)
+    ||(kind==='radiology'&&!(r.findings||[]).some(f=>!f.isNormal)&&!r.conditions?.length);
+  if(noAbnormal){
+    html+=`<div class="edu-card" style="background:var(--green-pale);border-color:var(--green-border);">
+      <div class="edu-icon-wrap" style="background:var(--green-border);">🎉</div>
+      <div class="edu-title" style="color:var(--green);">All Within Normal Range</div>
+      <div class="edu-body" style="color:#065f46;">All detected parameters are within normal range. Maintain your health with 30 minutes of daily exercise, a balanced diet rich in vegetables, lentils and whole grains, good hydration, and annual blood test check-ups.</div>
+    </div>`;
+  }
+
+  /* Disclaimer */
+  html+=`<div class="edu-card" style="background:#f0f9ff;border-color:#bae6fd;">
+    <div class="edu-icon-wrap" style="background:#dbeafe;">⚠️</div>
+    <div class="edu-title" style="color:#0369a1;">Important Notice</div>
+    <div class="edu-body" style="color:#0c4a6e;">This analysis is for <strong>educational purposes only</strong>. Reference ranges may vary by lab, age, and health history. Only a qualified doctor who knows your full medical history can properly interpret results and recommend treatment. <strong>Never change or stop medication based on this analysis alone.</strong></div>
+  </div>`;
+
+  html+='</div>';
+  document.getElementById('r-edu-content').innerHTML=html;
+}
+
+/* ══════════════════════════════════════════
+   TABS + UTILITIES
+   ══════════════════════════════════════════ */
+function activateTab(name){
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('#main-tabs .tab-btn').forEach(b=>b.classList.remove('active'));
+  const panel=document.getElementById('tab-'+name);
+  const btn=document.querySelector(`#main-tabs [data-tab="${name}"]`);
+  if(panel)panel.classList.add('active');
+  if(btn)btn.classList.add('active');
+}
+document.getElementById('main-tabs').addEventListener('click',e=>{
+  const btn=e.target.closest('.tab-btn');
+  if(btn&&btn.dataset.tab)activateTab(btn.dataset.tab);
+});
+function showScreen(s){
+  document.getElementById('upload-screen').style.display=s==='upload'?'block':'none';
+  document.getElementById('processing-screen').style.display=s==='processing'?'block':'none';
+  document.getElementById('results-screen').style.display=s==='results'?'block':'none';
+}
+function setProgress(p){document.getElementById('prog-fill').style.width=p+'%';}
+function markStep(id){document.getElementById(id).classList.add('done');}
+function setMsg(t){document.getElementById('proc-msg').textContent=t;}
+function showErr(msg){const b=document.getElementById('err-box');b.innerHTML='❌ '+msg;b.style.display='block';}
+function hideErr(){document.getElementById('err-box').style.display='none';}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function resetApp(){
+  currentFile=null;currentResult=null;
+  chartObjs.forEach(c=>{try{c.destroy();}catch{}});chartObjs=[];
+  document.getElementById('file-chip').classList.remove('show');
+  document.getElementById('analyze-btn').disabled=true;
+  try{document.getElementById('file-input').value='';}catch{}
+  document.getElementById('prog-fill').style.width='0%';
+  document.querySelectorAll('.proc-step').forEach(s=>s.classList.remove('done'));
+  setMsg('Reading file…');activateTab('summary');showScreen('upload');
+}
+showScreen('upload');
+</script>
+</body>
+</html>
